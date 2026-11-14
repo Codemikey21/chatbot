@@ -1,0 +1,201 @@
+{
+  "id": "wfNoticias000004",
+  "name": "WF04 - Noticias y nuevos cursos",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## WF04 · Noticias y nuevos cursos\n**Consulta**: la usa el agente de WF01 como herramienta **consultar_noticias** y lee `v_noticias_recientes` en Supabase.",
+        "height": 160,
+        "width": 520,
+        "color": 7
+      },
+      "id": "22d43731-b6a7-5fdf-954e-4f8a8f1e741f",
+      "name": "Nota",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "categoria",
+              "type": "string"
+            },
+            {
+              "name": "limite",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "id": "328f8ac4-43a7-5bd3-8c9d-1e6347830974",
+      "name": "Al ser llamado",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "bb2e66dd-63f2-5266-98a7-b7216b30953a",
+      "name": "Prueba manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ee1df86f-9bd1-589d-8735-b908146d123c",
+              "name": "categoria",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "80956d9d-9ffc-5f91-81c2-2dcdb4e002b3",
+              "name": "limite",
+              "value": 5,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "32414a74-9dde-52a3-917b-c9b1fa02cbea",
+      "name": "Parámetros de prueba",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normaliza la categoría y el límite que pide el agente\nconst CATEGORIAS = ['curso', 'convocatoria', 'certificacion', 'noticia'];\nconst entrada = $input.first().json;\nconst categoria = String(entrada.categoria ?? '')\n  .normalize('NFD').replace(/[̀-ͯ]/g, '')\n  .toLowerCase().trim().replace(/s$/, '');\nconst limite = Math.min(Math.max(parseInt(entrada.limite, 10) || 5, 1), 10);\n\nreturn [{ json: { categoria: CATEGORIAS.includes(categoria) ? categoria : '', limite } }];\n"
+      },
+      "id": "38c450a6-64ed-5861-880d-58c0db3e1b2b",
+      "name": "Normalizar parámetros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select titulo, resumen, url, categoria, fecha_publicacion, fuente\nfrom v_noticias_recientes\nwhere ($1::text = '' or categoria = $1::text)\norder by fecha_publicacion desc nulls last, recopilado_en desc\nlimit $2::int;",
+        "options": {
+          "queryReplacement": "={{ [$json.categoria, $json.limite] }}"
+        }
+      },
+      "id": "dbbbf8e4-0cdc-516f-828d-5326e5040a06",
+      "name": "Leer noticias recientes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        680,
+        80
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Supabase - n8n"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Entrega al agente las novedades con su fuente, enlace y fecha\nconst filas = $input.all().map((item) => item.json).filter((fila) => fila.titulo);\nconst parametros = $('Normalizar parámetros').first().json;\n\nif (filas.length === 0) {\n  return [{\n    json: {\n      encontrado: false,\n      categoria: parametros.categoria || 'todas',\n      mensaje: 'Todavía no hay noticias recopiladas para esa categoría.',\n      noticias: [],\n    },\n  }];\n}\n\nreturn [{\n  json: {\n    encontrado: true,\n    categoria: parametros.categoria || 'todas',\n    total: filas.length,\n    noticias: filas.map((fila) => ({\n      titulo: fila.titulo,\n      resumen: fila.resumen ? String(fila.resumen).slice(0, 400) : null,\n      categoria: fila.categoria,\n      fecha_publicacion: fila.fecha_publicacion,\n      fuente: fila.fuente,\n      url: fila.url,\n    })),\n  },\n}];\n"
+      },
+      "id": "9166d302-dcb6-5993-b4f7-5d679b70000f",
+      "name": "Preparar noticias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        80
+      ]
+    }
+  ],
+  "connections": {
+    "Al ser llamado": {
+      "main": [
+        [
+          {
+            "node": "Normalizar parámetros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prueba manual": {
+      "main": [
+        [
+          {
+            "node": "Parámetros de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parámetros de prueba": {
+      "main": [
+        [
+          {
+            "node": "Normalizar parámetros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar parámetros": {
+      "main": [
+        [
+          {
+            "node": "Leer noticias recientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer noticias recientes": {
+      "main": [
+        [
+          {
+            "node": "Preparar noticias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "active": false
+}

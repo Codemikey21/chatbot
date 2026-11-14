@@ -1,0 +1,211 @@
+{
+  "id": "wfCalendario0002",
+  "name": "WF02 - Consulta de calendario",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## WF02 · Consulta de calendario\nLa usa el agente de WF01 como herramienta **consultar_calendario**.\n\nLee la hoja `calendario` de Google Sheets (fuente oficial del calendario en este proyecto), filtra por tipo de evento y calcula si cada evento es próximo, está en curso o ya terminó (fecha de Bogotá).\n\nLos datos de la hoja son **DEMO**.",
+        "height": 220,
+        "width": 520,
+        "color": 7
+      },
+      "id": "c96ec78f-6e41-5efc-8302-267f6813d792",
+      "name": "Nota",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "tipo_evento",
+              "type": "string"
+            },
+            {
+              "name": "solo_proximos",
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      "id": "3bf5c7a0-2321-5302-bda0-7d56df687bb2",
+      "name": "Al ser llamado",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "93c83336-d4a2-5a98-a847-5ef5f1211fc0",
+      "name": "Prueba manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0bbae966-647e-559e-99b9-3acf0c2c7523",
+              "name": "tipo_evento",
+              "value": "inscripcion",
+              "type": "string"
+            },
+            {
+              "id": "f2efd06f-7ed1-5df2-bdaf-85095c7c6214",
+              "name": "solo_proximos",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a7224809-15e3-5d79-9316-534377ab237b",
+      "name": "Parámetros de prueba",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normaliza lo que pide el agente: tipo de evento y si solo quiere los próximos\nconst TIPOS = [\n  'inscripcion', 'prueba_diagnostica', 'resultados', 'inicio_curso', 'fin_curso',\n  'evaluacion', 'retiro', 'certificacion', 'matricula', 'inicio_clases', 'receso',\n];\nconst SINONIMOS = {\n  inscripciones: 'inscripcion',\n  prueba: 'prueba_diagnostica',\n  diagnostica: 'prueba_diagnostica',\n  pruebas_diagnosticas: 'prueba_diagnostica',\n  inicio: 'inicio_curso',\n  inicio_cursos: 'inicio_curso',\n  inicio_de_cursos: 'inicio_curso',\n  cierre: 'fin_curso',\n  fin_cursos: 'fin_curso',\n  insignia: 'certificacion',\n  insignias: 'certificacion',\n  matriculas: 'matricula',\n  vacaciones: 'receso',\n};\n\nconst entrada = $input.first().json;\nconst texto = String(entrada.tipo_evento ?? '')\n  .normalize('NFD').replace(/[̀-ͯ]/g, '')\n  .toLowerCase().trim().replace(/[\\s-]+/g, '_');\n\nlet tipo = null;\nif (texto && !['todos', 'todo', 'cualquiera', 'null', 'ninguno'].includes(texto)) {\n  tipo = TIPOS.includes(texto) ? texto : (SINONIMOS[texto] ?? null);\n}\n\nconst soloProximos = !(entrada.solo_proximos === false || String(entrada.solo_proximos).toLowerCase() === 'false');\n\nreturn [{ json: { tipo_evento: tipo, tipo_solicitado: texto || null, solo_proximos: soloProximos } }];\n"
+      },
+      "id": "bcd603a4-36ac-52d2-8533-7e22c88fd33d",
+      "name": "Normalizar parámetros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1Gh-fkD-vl8tX8DupNe0sSymEQYf6prCQ6YSPTH-V1JY"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "calendario"
+        },
+        "options": {}
+      },
+      "id": "32e6c7cd-6a88-5bd7-98e0-20d81f9ebce9",
+      "name": "Leer hoja de calendario",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        680,
+        80
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google Sheets - calendario"
+        }
+      },
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtra los eventos de la hoja y calcula el estado de cada uno\n// respecto a la fecha de hoy en Bogotá. Las fechas están como texto AAAA-MM-DD.\nconst parametros = $('Normalizar parámetros').first().json;\nconst hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });\nconst FECHA = /^\\d{4}-\\d{2}-\\d{2}$/;\nconst DIA = 24 * 60 * 60 * 1000;\n\nlet eventos = $input.all()\n  .map((item) => item.json)\n  .filter((fila) => fila.id_evento && FECHA.test(String(fila.fecha_inicio).trim()))\n  .map((fila) => {\n    const inicio = String(fila.fecha_inicio).trim();\n    const fin = FECHA.test(String(fila.fecha_fin).trim()) ? String(fila.fecha_fin).trim() : inicio;\n    const estado = fin < hoy ? 'finalizado' : (inicio <= hoy ? 'en_curso' : 'proximo');\n    return {\n      id: fila.id_evento,\n      titulo: fila.titulo,\n      tipo: fila.tipo_evento,\n      fecha_inicio: inicio,\n      fecha_fin: fin,\n      periodo: fila.periodo,\n      dirigido_a: fila.dirigido_a,\n      descripcion: fila.descripcion,\n      estado,\n      dias_para_inicio: Math.round((Date.parse(inicio) - Date.parse(hoy)) / DIA),\n      es_demo: String(fila.es_demo).toUpperCase() === 'TRUE',\n    };\n  });\n\nif (parametros.tipo_evento) {\n  eventos = eventos.filter((evento) => evento.tipo === parametros.tipo_evento);\n}\nif (parametros.solo_proximos) {\n  eventos = eventos.filter((evento) => evento.estado !== 'finalizado');\n}\neventos.sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio));\n\nconst resultado = {\n  hoy,\n  fuente: 'Calendario académico en Google Sheets (datos DEMO)',\n  filtro: { tipo_evento: parametros.tipo_evento, solo_proximos: parametros.solo_proximos },\n  total: eventos.length,\n  eventos: eventos.slice(0, 15),\n};\nif (parametros.tipo_solicitado && !parametros.tipo_evento) {\n  resultado.aviso = `El tipo \"${parametros.tipo_solicitado}\" no existe; se muestran todos los tipos.`;\n}\nif (eventos.length === 0) {\n  resultado.mensaje = 'No hay eventos que coincidan con la búsqueda en el calendario.';\n}\n\nreturn [{ json: resultado }];\n"
+      },
+      "id": "72f92b5d-475a-554e-b24c-d6c591afbc05",
+      "name": "Filtrar y ordenar eventos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        80
+      ]
+    }
+  ],
+  "connections": {
+    "Al ser llamado": {
+      "main": [
+        [
+          {
+            "node": "Normalizar parámetros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prueba manual": {
+      "main": [
+        [
+          {
+            "node": "Parámetros de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parámetros de prueba": {
+      "main": [
+        [
+          {
+            "node": "Normalizar parámetros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar parámetros": {
+      "main": [
+        [
+          {
+            "node": "Leer hoja de calendario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer hoja de calendario": {
+      "main": [
+        [
+          {
+            "node": "Filtrar y ordenar eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "active": false
+}

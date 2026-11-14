@@ -1,4 +1,5 @@
 {
+  "id": "wfIngestaDocs001",
   "name": "AUX - Ingesta de documentos (RAG)",
   "nodes": [
     {

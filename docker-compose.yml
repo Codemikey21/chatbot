@@ -28,6 +28,8 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
       - ./rag/corpus:/data/corpus:ro
+      # Workflows exportados, para importarlos con n8n import:workflow
+      - ./n8n/workflows:/data/workflows:ro
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:5678/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s

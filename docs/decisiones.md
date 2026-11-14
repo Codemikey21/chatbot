@@ -59,6 +59,22 @@ Cada entrada indica la fecha, qué se decidió y por qué.
 - **Decisión:** solo se modela el programa de Ingeniería de Sistemas, con su pensum (47 asignaturas, 134 créditos). Los NRC, los prerrequisitos, los estudiantes y las notas son sintéticos y se marcan como DEMO.
 - **Motivo:** el foco del chatbot son los cursos de competencias digitales (tres pilares; cada uno se aprueba con un curso y se pueden cursar en cualquier orden). La información de la carrera se usa como respaldo para las preguntas de avance y semestres restantes.
 
+## 2026-11-14 — Chat con un agente que combina herramientas
+- **Decisión:** WF01 clasifica la intención con Claude (salida JSON) y luego un agente de n8n con Claude responde usando cuatro herramientas: `buscar_documentos` (RAG), `consultar_calendario` (Google Sheets), `consultar_mis_datos` (MCP) y `consultar_noticias`. Cada herramienta es un sub-workflow.
+- **Motivo:** una pregunta puede necesitar varios módulos ("¿cuándo son las inscripciones y qué curso me recomiendas?"). Con un agente se combinan sin escribir una rama por cada combinación. El clasificador se conserva para bloquear lo que está fuera de alcance, guardar la intención y orientar al agente.
+
+## 2026-11-14 — El modelo nunca recibe el token de sesión
+- **Decisión:** el token JWT del estudiante pasa a WF03 como entrada fija del sub-workflow. El modelo solo elige el tipo de consulta de una lista blanca.
+- **Motivo:** si el modelo recibiera el token o el código, una inyección de instrucciones podría intentar consultar datos de otro estudiante. Así la identidad la decide el token verificado (en WF01, WF03 y el servidor MCP) y no el texto del chat.
+
+## 2026-11-14 — Memoria propia en PostgreSQL
+- **Decisión:** la memoria del chat usa las tablas `sesion_chat` y `mensaje_chat` con las funciones `fn_iniciar_turno` y `fn_guardar_turno`, en lugar del nodo de memoria de n8n.
+- **Motivo:** las funciones fijan el estudiante y RLS impide leer o escribir sesiones ajenas; además se guardan la intención, las fuentes, las herramientas y la latencia de cada respuesta, y los mensajes bloqueados no vuelven al contexto del modelo.
+
+## 2026-11-14 — Importación de workflows con IDs fijos
+- **Decisión:** los workflows se importan con `n8n import:workflow` desde la carpeta montada `/data/workflows`, con IDs fijos en cada JSON. Las credenciales se enlazan por nombre.
+- **Motivo:** las herramientas del agente llaman a sus sub-workflows por ID. Con IDs fijos la importación es reproducible en local y en EC2 sin volver a enlazar nada a mano.
+
 ## Pendientes
 - Confirmar con el profesor el uso de Flutter en lugar de Kotlin y Jetpack Compose.
 - Reemplazar los prerrequisitos DEMO por los oficiales si se consiguen.

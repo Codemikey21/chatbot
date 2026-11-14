@@ -1,0 +1,233 @@
+{
+  "id": "wfBusquedaDocs01",
+  "name": "AUX - Búsqueda en documentos (RAG)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Búsqueda en documentos (RAG)\nLa usa el agente de WF01 como herramienta **buscar_documentos**.\n\n1. Convierte la consulta en un embedding con Voyage (`input_type: query`).\n2. Busca con `fn_buscar_fragmentos`: similitud de vectores + texto completo en español (RRF) y umbral 0,35.\n3. Devuelve los fragmentos con documento, página y sección, o `encontrado: false` si nada supera el umbral.",
+        "height": 220,
+        "width": 520,
+        "color": 7
+      },
+      "id": "2eb2a2dd-85a3-53d5-837c-3261dab25a1e",
+      "name": "Nota",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "consulta",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "4d741494-0894-54c5-987a-ab03f988010a",
+      "name": "Al ser llamado",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "4b98dbac-1fe7-5a3c-9df0-a1f7b0143150",
+      "name": "Prueba manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d6fc7686-54f9-5377-8a0e-485744b95c32",
+              "name": "consulta",
+              "value": "¿Cuántos cursos necesito aprobar para obtener la insignia de competencias digitales?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e4b56dfd-9653-5b9b-8192-64dd7b600c9b",
+      "name": "Consulta de prueba",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Limpia la consulta que llega del agente (o de la prueba manual)\nconst consulta = String($input.first().json.consulta ?? '')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 500);\n\nif (!consulta) {\n  throw new Error('La consulta de búsqueda está vacía');\n}\n\nreturn [{ json: { consulta } }];\n"
+      },
+      "id": "e01054fe-9a87-59ef-965a-f1eb7ecadf3e",
+      "name": "Validar consulta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.voyageai.com/v1/embeddings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ input: [$json.consulta], model: 'voyage-4', input_type: 'query' }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "509efc1e-f2d4-50a9-931e-abe77fef86ce",
+      "name": "Embedding de la consulta (Voyage)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        80
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Voyage - embeddings"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select titulo, nombre_archivo, origen, url_origen, pagina, seccion, contenido,\n       round(similitud::numeric, 3) as similitud\nfrom fn_buscar_fragmentos($1::extensions.vector, $2, 5, 0.35);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.data[0].embedding), $('Validar consulta').first().json.consulta] }}"
+        }
+      },
+      "id": "58e79e30-6db8-5404-b137-3d82cd561416",
+      "name": "Buscar fragmentos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        900,
+        80
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Supabase - n8n"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convierte las filas de fn_buscar_fragmentos en el resultado que recibe\n// el agente: los fragmentos con la ficha de su documento para citarlo.\nconst filas = $input.all().map((item) => item.json).filter((fila) => fila.contenido);\n\nif (filas.length === 0) {\n  return [{\n    json: {\n      encontrado: false,\n      mensaje: 'No hay información sobre esto en los documentos institucionales disponibles.',\n      fragmentos: [],\n    },\n  }];\n}\n\nconst fragmentos = filas.map((fila, i) => ({\n  ref: i + 1,\n  documento: fila.titulo,\n  archivo: fila.nombre_archivo,\n  origen: fila.origen, // publico | demostrativo\n  url: fila.url_origen ?? null,\n  pagina: fila.pagina ?? null,\n  seccion: fila.seccion ?? null,\n  similitud: Number(fila.similitud),\n  texto: String(fila.contenido).slice(0, 1800),\n}));\n\nreturn [{ json: { encontrado: true, total: fragmentos.length, fragmentos } }];\n"
+      },
+      "id": "ba2f5877-1b07-5570-97e1-5c9edff223ab",
+      "name": "Preparar resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        80
+      ]
+    }
+  ],
+  "connections": {
+    "Al ser llamado": {
+      "main": [
+        [
+          {
+            "node": "Validar consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prueba manual": {
+      "main": [
+        [
+          {
+            "node": "Consulta de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta de prueba": {
+      "main": [
+        [
+          {
+            "node": "Validar consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar consulta": {
+      "main": [
+        [
+          {
+            "node": "Embedding de la consulta (Voyage)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding de la consulta (Voyage)": {
+      "main": [
+        [
+          {
+            "node": "Buscar fragmentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar fragmentos": {
+      "main": [
+        [
+          {
+            "node": "Preparar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "active": false
+}

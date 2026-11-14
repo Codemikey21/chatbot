@@ -1,0 +1,392 @@
+{
+  "id": "wfCursosReal0003",
+  "name": "WF03 - Cursos realizados (MCP)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## WF03 · Cursos realizados\nLa usa el agente de WF01 como herramienta **consultar_mis_datos**.\n\n1. El token de sesión llega desde WF01; el modelo nunca lo ve.\n2. El nodo JWT verifica firma y vencimiento; luego se validan emisor, audiencia y código.\n3. Una lista blanca decide qué herramienta MCP se puede llamar.\n4. El servidor FastMCP vuelve a validar el token y consulta Supabase con RLS.\n\nPara la prueba manual pega un token generado con `mcp-server/scripts/generar_token.py`.",
+        "height": 260,
+        "width": 560,
+        "color": 7
+      },
+      "id": "47dd7678-e70b-529a-9236-0b54176f21eb",
+      "name": "Nota",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "token_sesion",
+              "type": "string"
+            },
+            {
+              "name": "consulta",
+              "type": "string"
+            },
+            {
+              "name": "pilar",
+              "type": "string"
+            },
+            {
+              "name": "curso",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "b5d7c456-b6de-5a70-a46e-347cd3387291",
+      "name": "Al ser llamado",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "2ce0d49a-23a9-5979-896d-463e5d437fbb",
+      "name": "Prueba manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b54bf36a-c065-55b9-958b-70d1133e44a0",
+              "name": "token_sesion",
+              "value": "PEGA_AQUI_UN_TOKEN_DE_PRUEBA",
+              "type": "string"
+            },
+            {
+              "id": "ba22f7b4-a84c-5cb7-a560-69a543dfc0db",
+              "name": "consulta",
+              "value": "recomendaciones",
+              "type": "string"
+            },
+            {
+              "id": "96c69424-6842-50a4-926e-ac057f7c8d89",
+              "name": "pilar",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "d809f667-6993-518c-8705-423c84c52114",
+              "name": "curso",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d1d7bb70-028f-5ff3-8255-3a65492241c4",
+      "name": "Parámetros de prueba",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lista blanca: cada consulta permitida corresponde a UNA herramienta del\n// servidor MCP. Cualquier otra consulta se rechaza sin llamar al servidor.\nconst PERMITIDAS = {\n  historial: 'consultar_historial',\n  historial_asignaturas: 'consultar_historial',\n  progreso: 'consultar_progreso',\n  recomendaciones: 'obtener_recomendaciones',\n  requisitos: 'obtener_requisitos',\n  cursos_disponibles: 'consultar_cursos_disponibles',\n};\n\nconst entrada = $input.first().json;\nconst consulta = String(entrada.consulta ?? '').toLowerCase().trim();\nconst texto = (valor) => {\n  const limpio = String(valor ?? '').trim();\n  return limpio && !['null', 'ninguno', 'todos', 'undefined'].includes(limpio.toLowerCase())\n    ? limpio.slice(0, 80)\n    : null;\n};\n\nreturn [{\n  json: {\n    token_sesion: String(entrada.token_sesion ?? '').trim(),\n    consulta,\n    herramienta: PERMITIDAS[consulta] ?? null,\n    pilar: texto(entrada.pilar),\n    curso: texto(entrada.curso),\n  },\n}];\n"
+      },
+      "id": "3de62d57-43a5-513e-8fe1-c7df87ba87d5",
+      "name": "Normalizar parámetros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "verify",
+        "token": "={{ $json.token_sesion }}",
+        "options": {
+          "algorithm": "HS256"
+        }
+      },
+      "id": "1c0f9ee2-65ca-52fa-bb41-e6cb1c010485",
+      "name": "Verificar identidad",
+      "type": "n8n-nodes-base.jwt",
+      "typeVersion": 1,
+      "position": [
+        680,
+        80
+      ],
+      "credentials": {
+        "jwtAuth": {
+          "id": "",
+          "name": "JWT - sesiones"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// El token ya pasó la verificación de firma y vencimiento (nodo JWT).\n// Aquí se comprueban emisor, audiencia y código, y se arma la llamada MCP.\nconst EMISOR = 'chatbot-unab-api';\nconst AUDIENCIA = 'chatbot-unab';\n\nconst claims = $input.first().json.payload ?? {};\nconst p = $('Normalizar parámetros').first().json;\n\nconst audienciaValida = Array.isArray(claims.aud) ? claims.aud.includes(AUDIENCIA) : claims.aud === AUDIENCIA;\nif (claims.iss !== EMISOR || !audienciaValida || !/^U00\\d{6}$/.test(claims.sub ?? '')) {\n  return [{ json: { permitido: false, error: 'No se pudo verificar la identidad del estudiante.' } }];\n}\nif (!p.herramienta) {\n  return [{\n    json: {\n      permitido: false,\n      error: `Consulta no permitida: \"${p.consulta}\". Usa historial, historial_asignaturas, progreso, recomendaciones, requisitos o cursos_disponibles.`,\n    },\n  }];\n}\nif (p.consulta === 'requisitos' && !p.curso) {\n  return [{ json: { permitido: false, error: 'Para consultar requisitos indica el nombre o código del curso.' } }];\n}\n\nconst conPilar = p.pilar ? { pilar: p.pilar } : {};\nconst argumentos = {\n  historial: { token_sesion: p.token_sesion, tipo: 'competencia_digital' },\n  historial_asignaturas: { token_sesion: p.token_sesion, tipo: 'asignatura' },\n  progreso: { token_sesion: p.token_sesion },\n  recomendaciones: { token_sesion: p.token_sesion, ...conPilar },\n  requisitos: { curso: p.curso, token_sesion: p.token_sesion },\n  cursos_disponibles: { ...conPilar, incluir_asignaturas: false },\n}[p.consulta];\n\nreturn [{\n  json: {\n    permitido: true,\n    estudiante: claims.sub,\n    consulta: p.consulta,\n    herramienta: p.herramienta,\n    argumentos,\n  },\n}];\n"
+      },
+      "id": "409ade35-f238-5f0a-9aa4-278aa6551aab",
+      "name": "Preparar llamada MCP",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "03f3e032-2b9b-5c80-bed8-d69b0f4fa6d3",
+              "leftValue": "={{ $json.permitido }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cac15cf1-0b1c-576a-9314-36763ee6d0b2",
+      "name": "¿Consulta permitida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://mcp-server:9000/mcp",
+        "authentication": "bearerAuth",
+        "tool": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.herramienta }}"
+        },
+        "inputMode": "json",
+        "jsonInput": "={{ JSON.stringify($json.argumentos) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c55d6b1f-a6f9-5e3e-a0ee-63021f6eba9c",
+      "name": "Consultar servidor MCP",
+      "type": "@n8n/n8n-nodes-langchain.mcpClient",
+      "typeVersion": 1.1,
+      "position": [
+        1340,
+        -80
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "",
+          "name": "MCP - token servicio"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Entrega al agente solo los datos de la herramienta, sin el token\nconst respuesta = $input.first().json;\nconst llamada = $('Preparar llamada MCP').first().json;\n\nif (respuesta.error) {\n  const detalle = String(respuesta.error.message ?? respuesta.error);\n  return [{\n    json: {\n      consulta: llamada.consulta,\n      error: /venci/i.test(detalle)\n        ? 'La sesión del estudiante venció. Debe iniciar sesión de nuevo.'\n        : 'El servidor de datos académicos no pudo responder esta consulta.',\n    },\n  }];\n}\n\nconst texto = (respuesta.content ?? []).find((c) => c.type === 'text')?.text;\nconst datos = respuesta.structuredContent?.result ?? respuesta.structuredContent ?? texto ?? null;\n\nreturn [{ json: { consulta: llamada.consulta, herramienta_mcp: llamada.herramienta, datos } }];\n"
+      },
+      "id": "d1cadcb8-586b-59c3-9f81-409b070435b8",
+      "name": "Formatear resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ffcb03e9-aede-5b68-a96b-1bb4d6ff6c18",
+              "name": "error",
+              "value": "={{ $json.error }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a874d02a-bb0c-561f-918a-19e52b4dd200",
+      "name": "Consulta rechazada",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1340,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5869c704-89ea-5353-b59a-25854a629ee9",
+              "name": "error",
+              "value": "No se pudo verificar la identidad del estudiante. Debe iniciar sesión de nuevo.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "167dcf39-b6bc-51e0-822b-819e2615ba10",
+      "name": "Identidad no verificada",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        220
+      ]
+    }
+  ],
+  "connections": {
+    "Al ser llamado": {
+      "main": [
+        [
+          {
+            "node": "Normalizar parámetros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prueba manual": {
+      "main": [
+        [
+          {
+            "node": "Parámetros de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parámetros de prueba": {
+      "main": [
+        [
+          {
+            "node": "Normalizar parámetros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar parámetros": {
+      "main": [
+        [
+          {
+            "node": "Verificar identidad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar identidad": {
+      "main": [
+        [
+          {
+            "node": "Preparar llamada MCP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Identidad no verificada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar llamada MCP": {
+      "main": [
+        [
+          {
+            "node": "¿Consulta permitida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Consulta permitida?": {
+      "main": [
+        [
+          {
+            "node": "Consultar servidor MCP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta rechazada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar servidor MCP": {
+      "main": [
+        [
+          {
+            "node": "Formatear resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "pinData": {},
+  "active": false
+}
