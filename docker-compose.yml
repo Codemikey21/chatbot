@@ -1,0 +1,48 @@
+# =====================================================================
+# Chatbot académico UNAB - servicios en Docker
+# Uso local:  docker compose up -d
+# Las variables se leen del archivo .env (ver .env.example)
+# =====================================================================
+name: chatbot
+
+services:
+  n8n:
+    image: n8nio/n8n:2.46.7
+    container_name: chatbot-n8n
+    restart: unless-stopped
+    ports:
+      # Solo accesible desde este equipo; en EC2 se entra por túnel SSH
+      - "127.0.0.1:5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST}
+      - N8N_PORT=${N8N_PORT}
+      - N8N_PROTOCOL=${N8N_PROTOCOL}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - GENERIC_TIMEZONE=${TZ}
+      - TZ=${TZ}
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5678/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - chatbot-net
+
+volumes:
+  n8n_data:
+    name: chatbot_n8n_data
+
+networks:
+  chatbot-net:
+    name: chatbot-net
