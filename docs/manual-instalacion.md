@@ -44,7 +44,7 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 1. Crea el proyecto en la región **us-west-2 (Oregon)**. En *Settings* desactiva la Data API (ningún componente la usa).
 2. En **SQL Editor** ejecuta, en este orden, cada archivo de `database/migrations/`:
 
-   `001_extensiones_y_catalogo.sql` → `002_estudiantes_e_historial.sql` → `003_calendario_rag_noticias.sql` → `004_chat_y_seguridad.sql` → `005_vistas.sql` → `006_roles_seguridad_y_rls.sql` → `007_funciones_rag.sql` → `008_funciones_chat.sql` → `009_funciones_noticias.sql`
+   `001_extensiones_y_catalogo.sql` → `002_estudiantes_e_historial.sql` → `003_calendario_rag_noticias.sql` → `004_chat_y_seguridad.sql` → `005_vistas.sql` → `006_roles_seguridad_y_rls.sql` → `007_funciones_rag.sql` → `008_funciones_chat.sql` → `009_funciones_noticias.sql` → `010_requisito_practica.sql`
 
 3. Luego los datos de `database/seeds/`, también en orden: `001_catalogo.sql` → `002_estudiantes_demo.sql` → `003_calendario_demo.sql` → `004_fuentes_noticias.sql`.
 4. Activa los roles de la aplicación con las contraseñas que pusiste en `.env` (este script no se guarda en el repositorio):

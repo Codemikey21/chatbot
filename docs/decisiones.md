@@ -87,6 +87,10 @@ Cada entrada indica la fecha, qué se decidió y por qué.
 - **Decisión:** la API limita los intentos de login por IP (10 cada 5 minutos) y los mensajes del chat por estudiante (12 por minuto), con una ventana deslizante en memoria. Corre con un solo proceso.
 - **Motivo:** protege el login contra ataques de fuerza bruta (además del bloqueo de 15 minutos en la base de datos) y controla el gasto del modelo de lenguaje. Para varias instancias se usaría un almacén compartido como Redis.
 
+## 2026-11-14 — Costo, requisito de grado y Práctica Profesional
+- **Decisión:** los documentos DEMO del CCD incluyen el valor de cada curso ($392.000 por inscripción), que la insignia es requisito de grado y que la Práctica Profesional exige 110 créditos aprobados y la insignia completa. La regla de la práctica también está en la base (`practica_requiere_insignia` en `regla_academica`) y en la columna `habilitada` de `v_asignaturas_pendientes` (migración 010).
+- **Motivo:** son preguntas frecuentes de los estudiantes que el chatbot no podía responder. El valor y las dos reglas los indicó el estudiante autor del proyecto; se mantienen dentro de los documentos marcados como DEMO. Al estar la regla en la base, el servidor MCP y la app no muestran la práctica como habilitada si falta la insignia.
+
 ## Pendientes
 - Confirmar con el profesor el uso de Flutter en lugar de Kotlin y Jetpack Compose.
 - Reemplazar los prerrequisitos DEMO por los oficiales si se consiguen.

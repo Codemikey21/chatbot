@@ -52,3 +52,13 @@ La insignia se publica después del cierre del periodo en que el estudiante comp
 ## 8. Recomendaciones de cursos
 
 El asistente académico puede sugerir qué curso tomar en cada pilar pendiente según la relación de cada curso con las asignaturas del plan de estudios del estudiante. La recomendación es orientativa: la elección final es del estudiante.
+
+## 9. Valor de los cursos
+
+Cada Curso de Competencias Digitales tiene un valor de **$392.000** (pesos colombianos) por inscripción. Completar la insignia, con un curso por pilar, cuesta en total $1.176.000.
+
+## 10. Requisito de grado y Práctica Profesional
+
+1. La insignia de Competencias Digitales es **requisito de grado**: el estudiante no puede graduarse sin tener aprobados los tres pilares.
+2. Para inscribir la **Práctica Profesional** el estudiante debe cumplir dos condiciones: haber aprobado al menos **110 créditos** de su plan de estudios y tener la **insignia completa**.
+3. El estudiante puede deber asignaturas de su plan de estudios al inscribir la Práctica Profesional si ya cumple los 110 créditos, pero no puede deber ningún pilar de competencias digitales.
