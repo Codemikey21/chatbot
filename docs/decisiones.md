@@ -11,7 +11,7 @@ Cada entrada indica la fecha, qué se decidió y por qué.
 - **Decisión:** la información académica (estudiantes, cursos, matrículas, calificaciones, requisitos y competencias digitales) se simula en Supabase PostgreSQL.
 - **Motivo:** no hay acceso a Banner-Cosmos ni a otras bases privadas de la UNAB. Todo dato de ejemplo se marca como DEMO.
 
-## 2026-11-13 — Modelo de lenguaje: OpenAI
+## 2026-11-13 — Modelo de lenguaje: OpenAI (reemplazada el 2026-11-14)
 - **Decisión:** se usa OpenAI para el chat y los embeddings, con crédito prepago y la recarga automática desactivada.
 - **Motivo:** cumple el requisito (OpenAI o Claude). Azure for Students suele bloquear Azure OpenAI, y no hay evidencia de acceso a Bedrock en AWS Academy.
 
@@ -27,6 +27,15 @@ Cada entrada indica la fecha, qué se decidió y por qué.
 - **Decisión:** se usan documentos públicos de la UNAB, citando su URL, más documentos del CCD redactados como DOCUMENTO DEMOSTRATIVO.
 - **Motivo:** no hay documentos públicos específicos del CCD.
 
+## 2026-11-13 — Región: us-west-2 (Oregon)
+- **Decisión:** Supabase y la instancia EC2 del Learner Lab se ubican en us-west-2 (Oregon).
+- **Motivo:** al crear el proyecto, Supabase solo ofrecía la opción "Americas" y lo ubicó en Oregon. El Learner Lab permite esa región, así que la base de datos y el servidor quedan en la misma región.
+- **Configuración de seguridad de Supabase:** Data API desactivada (ningún componente usa la API REST) y RLS automático activado.
+
+## 2026-11-14 — Modelo de lenguaje: Claude, y embeddings con Voyage AI
+- **Decisión:** el chatbot usa Claude (API de Anthropic) para responder, clasificar intenciones y aplicar guardrails. Los embeddings del RAG se generan con Voyage AI.
+- **Motivo:** cumple el requisito (OpenAI o Claude) con créditos de la API de Claude disponibles para el proyecto, sin costo adicional. Anthropic no ofrece un modelo de embeddings propio; Voyage AI incluye 200 millones de tokens gratis por cuenta.
+- **Reemplaza:** la decisión del 2026-11-13 de usar OpenAI.
+
 ## Pendientes
-- Modelo de chat, modelo de embeddings y dimensión de los vectores (paso 6 de la Fase 0).
-- Región definitiva del Learner Lab y de Supabase.
+- Modelo de Claude, modelo de Voyage y dimensión de los vectores (paso 6 de la Fase 0).

@@ -13,9 +13,10 @@ Proyecto final de la asignatura Ciencia de Datos — Ingeniería de Sistemas, UN
 | App móvil | Flutter + Dart | `mobile_app/` |
 | API segura | FastAPI (Python) | `backend/` |
 | Orquestación y agentes | n8n | `n8n/` |
+| Modelo de lenguaje | Claude (API de Anthropic) | — |
 | Herramientas académicas (MCP) | FastMCP (Python) | `mcp-server/` |
 | Noticias y convocatorias | Scraper en Python | `scraper/` |
-| RAG | n8n + OpenAI + pgvector | `rag/` |
+| RAG | n8n + Voyage AI + pgvector | `rag/` |
 | Base de datos | Supabase PostgreSQL + pgvector | `database/` |
 | Calendario | Google Sheets API | — |
 | Infraestructura | Docker Compose, Caddy y AWS EC2 | `infrastructure/` |
