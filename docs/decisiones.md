@@ -83,6 +83,10 @@ Cada entrada indica la fecha, qué se decidió y por qué.
 - **Decisión:** se usan el feed RSS público de la UNAB (`/feed/`), filtrado por palabras académicas y sin las categorías internas (Gestión Humana, Trabaja con nosotros), y un boletín DEMO del CCD que sirve el propio scraper.
 - **Motivo:** no hay una fuente pública específica de los cursos de competencias digitales. El boletín DEMO demuestra la extracción de páginas HTML y garantiza datos para la demo aunque el sitio externo no responda. El `robots.txt` de la UNAB permite `/feed/`; el scraper lo revisa en cada ejecución y solo consulta dominios de una lista blanca.
 
+## 2026-11-14 — Límites de uso en la API
+- **Decisión:** la API limita los intentos de login por IP (10 cada 5 minutos) y los mensajes del chat por estudiante (12 por minuto), con una ventana deslizante en memoria. Corre con un solo proceso.
+- **Motivo:** protege el login contra ataques de fuerza bruta (además del bloqueo de 15 minutos en la base de datos) y controla el gasto del modelo de lenguaje. Para varias instancias se usaría un almacén compartido como Redis.
+
 ## Pendientes
 - Confirmar con el profesor el uso de Flutter en lugar de Kotlin y Jetpack Compose.
 - Reemplazar los prerrequisitos DEMO por los oficiales si se consiguen.
