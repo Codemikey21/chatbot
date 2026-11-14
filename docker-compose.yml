@@ -74,6 +74,24 @@ services:
     networks:
       - chatbot-net
 
+  scraper:
+    build: ./scraper
+    image: chatbot-scraper:1.0
+    container_name: chatbot-scraper
+    restart: unless-stopped
+    # Sin puertos publicados: solo n8n lo llama por la red interna (http://scraper:8000)
+    environment:
+      - SCRAPER_TOKEN=${SCRAPER_TOKEN}
+      - SCRAPER_DOMINIOS_PERMITIDOS=unab.edu.co,scraper
+      - TZ=${TZ}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - chatbot-net
+
 volumes:
   n8n_data:
     name: chatbot_n8n_data

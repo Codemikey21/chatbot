@@ -75,6 +75,14 @@ Cada entrada indica la fecha, qué se decidió y por qué.
 - **Decisión:** los workflows se importan con `n8n import:workflow` desde la carpeta montada `/data/workflows`, con IDs fijos en cada JSON. Las credenciales se enlazan por nombre.
 - **Motivo:** las herramientas del agente llaman a sus sub-workflows por ID. Con IDs fijos la importación es reproducible en local y en EC2 sin volver a enlazar nada a mano.
 
+## 2026-11-14 — Scraper sin acceso a la base de datos
+- **Decisión:** el scraper (FastAPI) solo descarga, limpia y clasifica las noticias. n8n (WF04) las guarda con `fn_guardar_noticias`. El servicio no publica puertos y exige un token Bearer.
+- **Motivo:** el único servicio que se conecta a sitios externos no tiene credenciales de la base de datos. La deduplicación por URL, la detección de cambios por hash y el registro de cada ejecución quedan en una sola función transaccional.
+
+## 2026-11-14 — Fuentes de noticias
+- **Decisión:** se usan el feed RSS público de la UNAB (`/feed/`), filtrado por palabras académicas y sin las categorías internas (Gestión Humana, Trabaja con nosotros), y un boletín DEMO del CCD que sirve el propio scraper.
+- **Motivo:** no hay una fuente pública específica de los cursos de competencias digitales. El boletín DEMO demuestra la extracción de páginas HTML y garantiza datos para la demo aunque el sitio externo no responda. El `robots.txt` de la UNAB permite `/feed/`; el scraper lo revisa en cada ejecución y solo consulta dominios de una lista blanca.
+
 ## Pendientes
 - Confirmar con el profesor el uso de Flutter en lugar de Kotlin y Jetpack Compose.
 - Reemplazar los prerrequisitos DEMO por los oficiales si se consiguen.

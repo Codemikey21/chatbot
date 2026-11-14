@@ -4,9 +4,9 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## WF04 · Noticias y nuevos cursos\n**Consulta**: la usa el agente de WF01 como herramienta **consultar_noticias** y lee `v_noticias_recientes` en Supabase.",
-        "height": 160,
-        "width": 520,
+        "content": "## WF04 · Noticias y nuevos cursos\n**Arriba, scraping programado (cada 6 horas):** lee las fuentes activas, llama al scraper (que revisa robots.txt), limpia y deduplica, y guarda con `fn_guardar_noticias` (sin duplicados por URL y con registro en `ejecucion_scraper`).\n\n**Abajo, consulta:** la usa el agente de WF01 como herramienta **consultar_noticias** y lee `v_noticias_recientes`.",
+        "height": 220,
+        "width": 620,
         "color": 7
       },
       "id": "22d43731-b6a7-5fdf-954e-4f8a8f1e741f",
@@ -15,7 +15,132 @@
       "typeVersion": 1,
       "position": [
         -40,
-        -220
+        -620
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "09b3b804-c788-5f4f-9141-049dd324b25f",
+      "name": "Cada 6 horas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id as fuente_id, nombre, url_base as url, tipo, configuracion, permitido_robots\nfrom fuente_noticia\nwhere activa\norder by id;",
+        "options": {}
+      },
+      "id": "31c6f616-b852-55e8-993f-84cf4a47b16a",
+      "name": "Leer fuentes activas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        -320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Supabase - n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://scraper:8000/extraer",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fuente_id: $json.fuente_id, nombre: $json.nombre, url: $json.url, tipo: $json.tipo, configuracion: $json.configuracion }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "d92ec6ef-a71c-597c-b805-4e3aba4cebc8",
+      "name": "Extraer con el scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        -320
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "",
+          "name": "Scraper - token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Revisa lo que devolvió el scraper para una fuente y arma los datos\n// para fn_guardar_noticias: sin títulos vacíos, sin URL repetidas y con\n// categorías y fechas válidas. Si el scraper no respondió, se registra el error.\nconst CATEGORIAS = ['curso', 'convocatoria', 'certificacion', 'noticia'];\nconst fuente = $('Leer fuentes activas').item.json;\nconst respuesta = $json;\n\nlet error = null;\nif (respuesta.error) {\n  error = typeof respuesta.error === 'string'\n    ? respuesta.error\n    : `El scraper no respondió: ${respuesta.error.message ?? 'error desconocido'}`;\n}\n\nconst vistas = new Set();\nconst noticias = [];\nfor (const n of (Array.isArray(respuesta.noticias) ? respuesta.noticias : [])) {\n  const titulo = String(n.titulo ?? '').replace(/\\s+/g, ' ').trim();\n  const url = String(n.url ?? '').trim();\n  if (!titulo || !/^https?:\\/\\//.test(url) || vistas.has(url)) continue;\n  if (!/^[0-9a-f]{64}$/.test(String(n.hash_contenido ?? ''))) continue;\n  vistas.add(url);\n  noticias.push({\n    titulo: titulo.slice(0, 300),\n    url,\n    resumen: n.resumen ? String(n.resumen).slice(0, 500) : null,\n    categoria: CATEGORIAS.includes(n.categoria) ? n.categoria : 'noticia',\n    fecha_publicacion: /^\\d{4}-\\d{2}-\\d{2}$/.test(String(n.fecha_publicacion ?? '')) ? n.fecha_publicacion : null,\n    hash_contenido: n.hash_contenido,\n  });\n}\n\nreturn {\n  json: {\n    fuente_id: fuente.fuente_id,\n    fuente: fuente.nombre,\n    // Si el scraper no respondió no se sabe qué dice robots.txt: se conserva el valor anterior\n    permitido: typeof respuesta.permitido_robots === 'boolean' ? respuesta.permitido_robots : fuente.permitido_robots,\n    error,\n    iniciado_en: respuesta.revisado_en ?? null,\n    noticias,\n  },\n};\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "ce8a1b5e-2e82-52a6-96c0-965306c2699b",
+      "name": "Limpiar y deduplicar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select ejecucion_id, estado, nuevas, actualizadas, sin_cambios\nfrom fn_guardar_noticias($1::smallint, $2::jsonb, $3::boolean, $4::text, $5::timestamptz);",
+        "options": {
+          "queryReplacement": "={{ [$json.fuente_id, JSON.stringify($json.noticias), $json.permitido, $json.error, $json.iniciado_en] }}",
+          "queryBatching": "independently"
+        }
+      },
+      "id": "52c0c223-ebef-5cd1-aec0-4e76dcaad19a",
+      "name": "Guardar noticias",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        880,
+        -320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Supabase - n8n"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resumen de la ejecución programada: una línea por fuente\nconst filas = $input.all().map((item, i) => {\n  const entrada = $('Limpiar y deduplicar').all()[i]?.json ?? {};\n  const r = item.json;\n  return {\n    fuente: entrada.fuente,\n    estado: r.estado ?? 'fallida',\n    nuevas: r.nuevas ?? 0,\n    actualizadas: r.actualizadas ?? 0,\n    sin_cambios: r.sin_cambios ?? 0,\n    error: entrada.error ?? r.error?.message ?? null,\n  };\n});\n\nreturn [{\n  json: {\n    fuentes: filas.length,\n    nuevas: filas.reduce((s, f) => s + f.nuevas, 0),\n    actualizadas: filas.reduce((s, f) => s + f.actualizadas, 0),\n    fallidas: filas.filter((f) => f.estado !== 'exitosa').length,\n    detalle: filas,\n  },\n}];\n"
+      },
+      "id": "170d3336-e4af-5f4f-8e19-b60fa6204ae2",
+      "name": "Resumen de la ejecución",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -320
       ]
     },
     {
@@ -135,6 +260,61 @@
     }
   ],
   "connections": {
+    "Cada 6 horas": {
+      "main": [
+        [
+          {
+            "node": "Leer fuentes activas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer fuentes activas": {
+      "main": [
+        [
+          {
+            "node": "Extraer con el scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer con el scraper": {
+      "main": [
+        [
+          {
+            "node": "Limpiar y deduplicar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar y deduplicar": {
+      "main": [
+        [
+          {
+            "node": "Guardar noticias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar noticias": {
+      "main": [
+        [
+          {
+            "node": "Resumen de la ejecución",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Al ser llamado": {
       "main": [
         [

@@ -7,7 +7,7 @@ n8n orquesta el chat, el RAG, el calendario, los datos del estudiante (vía MCP)
 | `WF01-consulta-general.json` | WF01 - Consulta general (chat) | Entrada única del chat: token → guardrail → memoria → clasificador → agente con herramientas → validación → memoria → respuesta |
 | `WF02-calendario.json` | WF02 - Consulta de calendario | Lee la hoja `calendario` de Google Sheets, filtra por tipo de evento y calcula si cada evento es próximo, está en curso o terminó |
 | `WF03-cursos-realizados.json` | WF03 - Cursos realizados (MCP) | Verifica el token del estudiante y llama la herramienta permitida del servidor FastMCP |
-| `WF04-noticias.json` | WF04 - Noticias y nuevos cursos | Devuelve las novedades guardadas en PostgreSQL |
+| `WF04-noticias.json` | WF04 - Noticias y nuevos cursos | Cada 6 horas llama al scraper por cada fuente activa y guarda las noticias sin duplicados; además devuelve las novedades al agente |
 | `AUX-busqueda-documentos.json` | AUX - Búsqueda en documentos (RAG) | Embedding de la pregunta con Voyage + `fn_buscar_fragmentos` (búsqueda híbrida con umbral) |
 | `AUX-ingesta-documentos.json` | AUX - Ingesta de documentos | Carga el corpus en pgvector (ver `rag/README.md`) |
 
@@ -53,6 +53,18 @@ flowchart LR
 }
 ```
 
+## Noticias programadas (WF04)
+
+```text
+Cada 6 horas ─► Leer fuentes activas ─► Extraer con el scraper (una llamada por fuente)
+             ─► Limpiar y deduplicar ─► Guardar noticias (fn_guardar_noticias) ─► Resumen
+```
+
+- Las fuentes están en la tabla `fuente_noticia` (`database/seeds/004_fuentes_noticias.sql`): el feed RSS público de la UNAB y un boletín **DEMO** que sirve el propio scraper.
+- El scraper revisa `robots.txt` y una lista blanca de dominios antes de descargar (ver `scraper/README.md`).
+- `fn_guardar_noticias` inserta las noticias nuevas, actualiza solo las que cambiaron (hash distinto), actualiza `permitido_robots` de la fuente y registra cada ejecución en `ejecucion_scraper`.
+- Para correrlo a mano: en el editor, botón **Execute** → disparador **Cada 6 horas**.
+
 ## Seguridad
 
 - **Acceso al webhook:** solo con el encabezado `X-Chat-Token` (secreto compartido con la API). En EC2, n8n no se publica a internet.
@@ -78,6 +90,7 @@ Créalas en n8n **antes de importar**, con estos nombres exactos (la importació
 | `JWT - sesiones` | JWT Auth | Passphrase = `JWT_SECRET`, algoritmo HS256 |
 | `MCP - token servicio` | Bearer Auth | `MCP_AUTH_TOKEN` |
 | `Chat - token` | Header Auth | Nombre `X-Chat-Token`, valor = `N8N_WEBHOOK_SECRET` |
+| `Scraper - token` | Bearer Auth | `SCRAPER_TOKEN` |
 | `Ingesta - token` | Header Auth | Token del webhook de ingesta |
 
 ## Importar y publicar
