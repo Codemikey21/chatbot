@@ -1,0 +1,48 @@
+# =====================================================================
+# Caddy en AWS EC2: HTTPS automático (Let's Encrypt) para el dominio.
+# El dominio sale de la variable DOMINIO del archivo .env.
+#
+#   https://DOMINIO/api/v1/...   -> API FastAPI (app Android y versión web)
+#   https://DOMINIO/health       -> salud de la API
+#   https://DOMINIO/             -> versión web de la app (iPhone / navegador)
+#   https://DOMINIO:9000/mcp     -> servidor MCP (HTTP streamable)
+#
+# n8n no se publica: se administra por túnel SSH.
+# =====================================================================
+
+{$DOMINIO} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# API segura
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+	handle /health {
+		reverse_proxy api:8080
+	}
+
+	# Versión web de la app (Flutter web, compilada en el PC y copiada a la instancia)
+	handle {
+		root * /srv/web
+		try_files {path} /index.html
+		file_server
+	}
+
+	log
+}
+
+# Servidor MCP con HTTPS en el puerto 9000 (lo exige la actividad).
+# El servidor MCP pide su propio token Bearer.
+{$DOMINIO}:9000 {
+	reverse_proxy mcp-server:9000 {
+		flush_interval -1
+	}
+	log
+}

@@ -1,0 +1,48 @@
+# =====================================================================
+# Despliegue en AWS EC2. Se usa junto con docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.aws.yml up -d --build
+#
+# Agrega Caddy (HTTPS en 80, 443 y 9000) y deja la API y el MCP sin
+# puertos propios: desde internet solo se entra por Caddy.
+# =====================================================================
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: chatbot-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9000:9000"
+    environment:
+      - DOMINIO=${DOMINIO}
+    volumes:
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./mobile_app/build/web:/srv/web:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - mcp-server
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - chatbot-net
+
+  mcp-server:
+    # Caddy usa el puerto 9000 del servidor; el MCP solo queda en la red interna
+    ports: !reset []
+
+  api:
+    environment:
+      # Sin documentación interactiva (/docs) en producción
+      - API_DOCS=false
+
+volumes:
+  caddy_data:
+    name: chatbot_caddy_data
+  caddy_config:
+    name: chatbot_caddy_config
