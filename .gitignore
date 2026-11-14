@@ -1,0 +1,38 @@
+# ===== Secretos y configuración local =====
+.env
+.env.*
+!.env.example
+secrets/*
+!secrets/.gitkeep
+*.pem
+*.key
+*service-account*.json
+
+# ===== Editores =====
+.idea/
+.vscode/
+*.code-workspace
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# ===== Node (MCP Inspector y utilidades) =====
+node_modules/
+
+# ===== Datos locales y registros =====
+n8n_data/
+*.log
+
+# ===== Sistema operativo =====
+Thumbs.db
+desktop.ini
+.DS_Store
