@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Morado de la app: fondo de la pantalla de carga nativa, igual al
+         del arranque en Flutter para que no aparezca un destello blanco -->
+    <color name="fondo_arranque">#3B0F80</color>
+</resources>

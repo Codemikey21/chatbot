@@ -34,6 +34,11 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  http: ^1.6.0
+  flutter_secure_storage: ^11.2.0
+  flutter_animate: ^4.5.2
+  flutter_markdown_plus: ^1.0.12
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:
@@ -56,6 +61,24 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Imágenes de la app (logo de la universidad y foto del campus).
+  assets:
+    - assets/imagenes/
+    - assets/fuentes/OFL.txt
+
+  # Tipografía Poppins (licencia SIL Open Font License, ver assets/fuentes/OFL.txt).
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fuentes/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fuentes/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fuentes/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fuentes/Poppins-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:
