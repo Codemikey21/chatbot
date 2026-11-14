@@ -48,6 +48,12 @@ class Configuracion:
 
     documentacion: bool = field(default_factory=lambda: os.getenv("API_DOCS", "true").lower() == "true")
 
+    # Orígenes web que pueden llamar la API desde un navegador (separados por coma).
+    # Vacío = sin CORS: la app Android no lo necesita, solo la versión web de la app.
+    origenes_cors: tuple[str, ...] = field(
+        default_factory=lambda: tuple(o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip())
+    )
+
     @property
     def conninfo(self) -> str:
         return (

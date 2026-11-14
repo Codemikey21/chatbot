@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .config import Configuracion
@@ -57,6 +58,18 @@ def crear_app(config: Configuracion | None = None) -> FastAPI:
         if request.url.path.startswith(PREFIJO):
             respuesta.headers["Cache-Control"] = "no-store"
         return respuesta
+
+    # CORS solo para los orígenes de CORS_ORIGINS (la versión web de la app).
+    # Se agrega después de las cabeceras para que responda primero las peticiones OPTIONS.
+    if config.origenes_cors:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(config.origenes_cors),
+            allow_methods=["GET", "POST", "DELETE"],
+            allow_headers=["Authorization", "Content-Type"],
+            expose_headers=["Retry-After"],
+            max_age=600,
+        )
 
     @app.exception_handler(BaseDeDatosNoDisponible)
     async def base_no_disponible(_: Request, __: BaseDeDatosNoDisponible):

@@ -96,6 +96,8 @@ services:
       - JWT_EXPIRES_MINUTES=${JWT_EXPIRES_MINUTES}
       - N8N_INTERNAL_URL=http://n8n:5678/webhook/
       - N8N_WEBHOOK_SECRET=${N8N_WEBHOOK_SECRET}
+      # Orígenes web permitidos (versión web de la app); vacío = sin CORS
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
       # La API no se publica directamente: solo confía en la IP que reenvía Caddy o el host
       - FORWARDED_ALLOW_IPS=*
       - TZ=${TZ}

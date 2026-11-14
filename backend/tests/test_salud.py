@@ -22,3 +22,20 @@ def test_cabeceras_de_seguridad(cliente):
     assert r.headers["X-Content-Type-Options"] == "nosniff"
     assert r.headers["X-Frame-Options"] == "DENY"
     assert r.headers["Cache-Control"] == "no-store"
+
+def test_cors_origen_permitido(cliente):
+    r = cliente.options(
+        "/api/v1/auth/login",
+        headers={
+            "Origin": "http://localhost:5000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert r.status_code == 200
+    assert r.headers["access-control-allow-origin"] == "http://localhost:5000"
+
+
+def test_cors_origen_no_permitido(cliente):
+    r = cliente.get("/api/v1/auth/sesion", headers={"Origin": "https://sitio-ajeno.example"})
+    assert "access-control-allow-origin" not in r.headers

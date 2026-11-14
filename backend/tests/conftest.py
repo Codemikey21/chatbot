@@ -14,6 +14,7 @@ import pytest
 os.environ["N8N_INTERNAL_URL"] = "http://n8n-prueba:5678/webhook/"
 os.environ["LIMITE_LOGIN_POR_IP"] = "8"
 os.environ["LIMITE_CHAT_POR_MINUTO"] = "3"
+os.environ["CORS_ORIGINS"] = "http://localhost:5000"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
