@@ -168,6 +168,17 @@ def main() -> int:
     ok = estado == 200 and datos.get("sesion_id") == sesion_rag and datos.get("sesion_nueva") is False
     reportar("memoria", ok, "continúa la misma sesión", f"{segundos:4.1f}s sesion_nueva={datos.get('sesion_nueva')}")
 
+    # Seguimiento: el estudiante acepta lo que el asistente le ofreció
+    estado, datos, _ = enviar("¿Qué cursos de competencias digitales me faltan para la insignia?")
+    sesion_seguimiento = datos.get("sesion_id") if estado == 200 else None
+    estado, datos, segundos = enviar("Sí, me gustaría", sesion_id=sesion_seguimiento)
+    ok = (estado == 200 and not datos.get("bloqueado")
+          and "No pude confirmar" not in str(datos.get("respuesta", "")))
+    reportar("seguimiento", ok, "acepta la oferta sin respuesta de seguridad",
+             f"{segundos:4.1f}s herramientas={datos.get('herramientas')}")
+    if not ok:
+        print("    respuesta:", json.dumps(datos, ensure_ascii=False)[:400])
+
     # Seguridad del acceso
     estado, _, _ = enviar("hola", token_sesion=jwt.encode({"sub": ESTUDIANTE}, "otro-secreto", algorithm="HS256"))
     reportar("token_falso", estado == 401, "HTTP 401 con token mal firmado", f"HTTP {estado}")
