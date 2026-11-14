@@ -1,0 +1,560 @@
+{
+  "name": "AUX - Ingesta de documentos (RAG)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d2d4f35a-2b4d-4ee3-bf99-d98fd3de2543",
+      "name": "Ejecutar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "id": "b103e195-f5fd-4c02-b1a1-2196e882e128",
+      "name": "Revisión diaria",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ingesta-documentos",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {
+          "binaryPropertyName": "data",
+          "responseData": "Documento recibido. La ingesta se está procesando."
+        }
+      },
+      "id": "7902a5b0-e621-46a7-8c60-c458b7f38ba1",
+      "name": "Recibir documento",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        420
+      ],
+      "webhookId": "488f66a2-bbf6-45c5-bff8-19ded65ef596",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Ingesta - token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "/data/corpus/*.{pdf,md,txt}",
+        "options": {}
+      },
+      "id": "8666856a-bf17-4acb-bce0-b8ecaf5423ae",
+      "name": "Leer documentos del corpus",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Toma el archivo recibido (de la carpeta del corpus o del webhook),\n// valida su formato y deja el binario en el campo \"data\".\nconst binarios = $input.item.binary || {};\nconst clave = Object.keys(binarios)[0];\nif (!clave) {\n  throw new Error('El elemento no trae ningún archivo.');\n}\nconst archivo = binarios[clave];\nconst nombre = (archivo.fileName || '').trim();\nconst extension = (archivo.fileExtension || nombre.split('.').pop() || '').toLowerCase();\nconst PERMITIDOS = ['pdf', 'md', 'txt'];\nif (!PERMITIDOS.includes(extension)) {\n  throw new Error(`Formato no soportado: ${nombre}. Solo se aceptan PDF, MD o TXT.`);\n}\nreturn {\n  json: { nombre_archivo: nombre.toLowerCase(), tipo_archivo: extension },\n  binary: { data: archivo },\n};"
+      },
+      "id": "5e57cd10-4d1c-4729-ad1d-da87f3bb8be3",
+      "name": "Identificar archivo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7f968003-fa65-4043-96a8-42d186e2e5c2",
+              "leftValue": "={{ $json.tipo_archivo }}",
+              "rightValue": "pdf",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cff255fb-7840-41e9-befe-4dd3d127a073",
+      "name": "¿Es PDF?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "data",
+        "options": {
+          "joinPages": false,
+          "keepSource": "json"
+        }
+      },
+      "id": "c9fdd84a-c511-4e10-bbd0-b034f4e81dc1",
+      "name": "Extraer texto del PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "data",
+        "destinationKey": "texto",
+        "options": {
+          "encoding": "utf8",
+          "stripBOM": true,
+          "keepSource": "json"
+        }
+      },
+      "id": "2d49cc83-5d76-411f-adc4-945f15404fa4",
+      "name": "Extraer texto plano",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hash",
+        "binaryData": false,
+        "type": "SHA256",
+        "value": "={{ Array.isArray($json.text) ? $json.text.join('\\n\\n') : ($json.texto || '') }}",
+        "dataPropertyName": "hash_contenido",
+        "encoding": "hex"
+      },
+      "id": "66f1bd3a-bd5e-4957-9dbf-1e7f72fb3028",
+      "name": "Calcular hash",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select estado, documento_id, version\nfrom fn_estado_documento($1, $2);",
+        "options": {
+          "queryReplacement": "={{ [$json.nombre_archivo, $json.hash_contenido] }}"
+        }
+      },
+      "id": "1f7a5f42-98d8-47e8-95a2-fe8b7c1e14ab",
+      "name": "Consultar estado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1680,
+        260
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Supabase - n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "226df579-2f50-4d3c-aa0b-5a9e7aac0a4f",
+              "leftValue": "={{ $json.estado }}",
+              "rightValue": "sin_cambios",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bab0f8f2-ecde-4314-a833-d7018e7f732c",
+      "name": "¿Es nuevo o cambió?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1920,
+        260
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "81665ee8-4178-4aa7-a2a0-d5f2c939e600",
+      "name": "Sin cambios",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Limpia el texto, lo divide en fragmentos con solape y conserva la sección y la página.\n// Salida: metadatos del documento + fragmentos listos para generar embeddings.\n\nconst TAMANO_OBJETIVO = 1200;   // caracteres por fragmento\nconst TAMANO_MAXIMO = 1600;\nconst SOLAPE = 200;             // caracteres que se repiten entre fragmentos\n\n// Documentos públicos: título y URL de origen (se citan en las respuestas)\nconst FUENTES_PUBLICAS = {\n  'reglamento-estudiantil-pregrado.pdf': {\n    titulo: 'Reglamento Estudiantil de Pregrado (UNAB, 2019)',\n    url: 'https://unab.edu.co/NewFolder/Reglamento-estudiantil-pregraod.pdf',\n  },\n  'lineamientos-curriculares-pregrado.pdf': {\n    titulo: 'Lineamientos curriculares de pregrado (UNAB, 2018)',\n    url: 'https://unab.edu.co/NewFolder/Lineamientos-curriculares-pregrado.pdf',\n  },\n};\n\nfunction leerFrontMatter(texto) {\n  const m = texto.match(/^---\\n([\\s\\S]*?)\\n---\\n/);\n  if (!m) return { meta: {}, cuerpo: texto };\n  const meta = {};\n  for (const linea of m[1].split('\\n')) {\n    const i = linea.indexOf(':');\n    if (i > 0) meta[linea.slice(0, i).trim()] = linea.slice(i + 1).trim();\n  }\n  return { meta, cuerpo: texto.slice(m[0].length) };\n}\n\nfunction limpiar(texto) {\n  return texto\n    .replace(/\\r\\n?/g, '\\n')\n    .replace(/­/g, '')                          // guiones suaves\n    .replace(/([a-záéíóúñü])-\\n([a-záéíóúñü])/gi, '$1$2') // palabras partidas al final de línea\n    .replace(/^.*\\.{5,}.*$/gm, '')                   // líneas de índice con puntos\n    .replace(/^\\s*\\d{1,3}\\s*$/gm, '')                // números de página sueltos\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/ *\\n */g, '\\n')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\nconst ES_TITULO = /^(#{1,6}\\s+.+|T[IÍ]TULO\\s+[A-ZÁÉÍÓÚ]+.*|CAP[IÍ]TULO\\s+[A-ZÁÉÍÓÚ]+.*|ART[IÍ]CULO\\s+\\d+.*)$/i;\n\n// Divide en párrafos y une las líneas cortadas de los PDF\nfunction parrafos(texto) {\n  const salida = [];\n  for (const bloque of texto.split(/\\n\\s*\\n/)) {\n    const lineas = bloque.split('\\n').map((l) => l.trim()).filter(Boolean);\n    let actual = '';\n    for (const linea of lineas) {\n      if (ES_TITULO.test(linea) && !/^ART[IÍ]CULO/i.test(linea)) {\n        if (actual) salida.push(actual);\n        salida.push(linea);\n        actual = '';\n      } else if (/^ART[IÍ]CULO\\s+\\d+/i.test(linea)) {\n        if (actual) salida.push(actual);\n        actual = linea;\n      } else if (/^([-*•]|\\d+[.)])\\s/.test(linea) || /^\\|/.test(linea)) {\n        actual = actual ? actual + '\\n' + linea : linea;\n      } else {\n        actual = actual ? actual + ' ' + linea : linea;\n      }\n    }\n    if (actual) salida.push(actual);\n  }\n  return salida;\n}\n\nfunction partirLargo(parrafo) {\n  if (parrafo.length <= TAMANO_MAXIMO) return [parrafo];\n  const oraciones = parrafo.match(/[^.!?;]+[.!?;]+|\\S[^.!?;]*$/g) || [parrafo];\n  const piezas = [];\n  let actual = '';\n  for (const o of oraciones) {\n    if ((actual + ' ' + o).length > TAMANO_OBJETIVO && actual) {\n      piezas.push(actual.trim());\n      actual = o;\n    } else {\n      actual += ' ' + o;\n    }\n  }\n  if (actual.trim()) piezas.push(actual.trim());\n  return piezas;\n}\n\nfunction solape(texto) {\n  if (texto.length <= SOLAPE) return texto;\n  const cola = texto.slice(-SOLAPE);\n  const corte = cola.search(/[.!?;]\\s/);\n  return corte >= 0 ? cola.slice(corte + 2) : cola;\n}\n\n// Datos del archivo y su texto (vienen del nodo \"Calcular hash\")\nconst fuente = $('Calcular hash').item.json;\nconst nombre = fuente.nombre_archivo;\nconst tipo = fuente.tipo_archivo;\nconst paginas = Array.isArray(fuente.text) ? [...fuente.text] : [fuente.texto || fuente.text || ''];\n\nlet meta = {};\nif (tipo === 'md' || tipo === 'txt') {\n  const fm = leerFrontMatter(paginas[0].replace(/\\r\\n?/g, '\\n'));\n  meta = fm.meta;\n  paginas[0] = fm.cuerpo;\n}\n\nconst fragmentos = [];\nlet seccion = '';\nlet actual = '';\nlet paginaInicio = null;\n\nfunction cerrar(paginaFin) {\n  const contenido = actual.trim();\n  if (contenido.length >= 80) {\n    fragmentos.push({\n      indice: fragmentos.length,\n      contenido,\n      pagina: tipo === 'pdf' ? paginaInicio : null,\n      seccion: seccion.replace(/^#+\\s*/, '').slice(0, 250) || null,\n    });\n  }\n  actual = contenido ? solape(contenido) : '';\n  paginaInicio = paginaFin;\n}\n\npaginas.forEach((textoPagina, i) => {\n  const numPagina = i + 1;\n  for (const p of parrafos(limpiar(textoPagina))) {\n    if (ES_TITULO.test(p) && !/^ART[IÍ]CULO/i.test(p)) {\n      if (actual.length > 300) cerrar(numPagina);\n      seccion = p;\n      continue;\n    }\n    for (const pieza of partirLargo(p)) {\n      if (paginaInicio === null) paginaInicio = numPagina;\n      if ((actual + '\\n' + pieza).length > TAMANO_OBJETIVO && actual.length > SOLAPE) {\n        cerrar(numPagina);\n      }\n      actual = actual ? actual + '\\n' + pieza : pieza;\n    }\n  }\n});\nif (actual.trim()) cerrar(null);\n\nconst publica = FUENTES_PUBLICAS[nombre];\nconst titulo = meta.titulo || (publica && publica.titulo) || nombre.replace(/\\.[^.]+$/, '').replace(/[-_]/g, ' ');\nconst origen = meta.origen || (publica ? 'publico' : 'demostrativo');\n\nreturn {\n  json: {\n    documento: {\n      nombre_archivo: nombre,\n      titulo,\n      descripcion: origen === 'demostrativo' ? 'Documento demostrativo (contenido sintético)' : 'Documento público de la UNAB',\n      tipo_archivo: tipo,\n      origen,\n      url_origen: publica ? publica.url : (meta.url || ''),\n      hash_contenido: fuente.hash_contenido,\n    },\n    // Texto que se envía a Voyage: incluye título y sección para dar contexto\n    fragmentos: fragmentos.map((f) => ({\n      ...f,\n      texto_embedding: `Documento: ${titulo}\\n${f.seccion ? 'Sección: ' + f.seccion + '\\n' : ''}${f.contenido}`,\n    })),\n  },\n};\n"
+      },
+      "id": "304f969c-00ba-49ac-a915-de7dfe49b334",
+      "name": "Limpiar y fragmentar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Agrupa los fragmentos en lotes para Voyage AI (un lote = una petición).\n// Lotes de 24 fragmentos con 1 s de pausa entre peticiones (límites de Voyage nivel 1).\nconst TAMANO_LOTE = 24;\nconst salida = [];\n$input.all().forEach((item, d) => {\n  const { fragmentos } = item.json;\n  for (let i = 0; i < fragmentos.length; i += TAMANO_LOTE) {\n    salida.push({\n      json: {\n        documento_indice: d,\n        desde: i,\n        textos: fragmentos.slice(i, i + TAMANO_LOTE).map((f) => f.texto_embedding),\n      },\n    });\n  }\n});\nreturn salida;"
+      },
+      "id": "b5964945-6f46-4c36-9eb3-eb91a24b8923",
+      "name": "Preparar lotes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.voyageai.com/v1/embeddings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ input: $json.textos, model: 'voyage-4', input_type: 'document' }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1000
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "5dbb6a7f-8ddd-4516-bc3f-d46e21038a4e",
+      "name": "Generar embeddings (Voyage)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        160
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Voyage - embeddings"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Une cada embedding con su fragmento y arma un elemento por documento.\nconst DIMENSION = 1024;\nconst lotes = $('Preparar lotes').all();\nconst documentos = $('Limpiar y fragmentar').all();\nconst respuestas = $input.all();\n\nif (respuestas.length !== lotes.length) {\n  throw new Error(`Se esperaban ${lotes.length} respuestas de Voyage y llegaron ${respuestas.length}.`);\n}\n\nconst vectores = documentos.map((d) => new Array(d.json.fragmentos.length));\nrespuestas.forEach((respuesta, i) => {\n  const lote = lotes[i].json;\n  const datos = respuesta.json.data;\n  if (!Array.isArray(datos) || datos.length !== lote.textos.length) {\n    throw new Error(`El lote ${i} devolvió ${Array.isArray(datos) ? datos.length : 0} embeddings para ${lote.textos.length} textos.`);\n  }\n  [...datos]\n    .sort((a, b) => a.index - b.index)\n    .forEach((e, j) => {\n      vectores[lote.documento_indice][lote.desde + j] = e.embedding;\n    });\n});\n\nreturn documentos.map((d, k) => ({\n  json: {\n    documento: d.json.documento,\n    fragmentos: d.json.fragmentos.map((f, i) => {\n      const vector = vectores[k][i];\n      if (!Array.isArray(vector) || vector.length !== DIMENSION) {\n        throw new Error(`Falta el embedding del fragmento ${i} de ${d.json.documento.nombre_archivo}.`);\n      }\n      return {\n        indice: f.indice,\n        contenido: f.contenido,\n        pagina: f.pagina,\n        seccion: f.seccion,\n        embedding: vector,\n      };\n    }),\n  },\n}));"
+      },
+      "id": "e5fc0ba0-519f-494e-bc1d-864ccc9770bf",
+      "name": "Unir embeddings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select documento_id, version, total_fragmentos, accion\nfrom fn_guardar_documento($1::jsonb, $2::jsonb);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.documento), JSON.stringify($json.fragmentos)] }}",
+          "queryBatching": "independently"
+        }
+      },
+      "id": "597677e2-2205-4d99-a8f1-1acb07b0e96f",
+      "name": "Guardar documento",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3120,
+        160
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Supabase - n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "id": "0eb8a0f6-be08-4ece-8ed1-8d4dad13e023",
+      "name": "Unir textos",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1200,
+        260
+      ]
+    }
+  ],
+  "connections": {
+    "Ejecutar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Leer documentos del corpus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisión diaria": {
+      "main": [
+        [
+          {
+            "node": "Leer documentos del corpus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer documentos del corpus": {
+      "main": [
+        [
+          {
+            "node": "Identificar archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recibir documento": {
+      "main": [
+        [
+          {
+            "node": "Identificar archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identificar archivo": {
+      "main": [
+        [
+          {
+            "node": "¿Es PDF?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es PDF?": {
+      "main": [
+        [
+          {
+            "node": "Extraer texto del PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer texto plano",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer texto del PDF": {
+      "main": [
+        [
+          {
+            "node": "Unir textos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer texto plano": {
+      "main": [
+        [
+          {
+            "node": "Unir textos",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Calcular hash": {
+      "main": [
+        [
+          {
+            "node": "Consultar estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar estado": {
+      "main": [
+        [
+          {
+            "node": "¿Es nuevo o cambió?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es nuevo o cambió?": {
+      "main": [
+        [
+          {
+            "node": "Limpiar y fragmentar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sin cambios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar y fragmentar": {
+      "main": [
+        [
+          {
+            "node": "Preparar lotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar lotes": {
+      "main": [
+        [
+          {
+            "node": "Generar embeddings (Voyage)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar embeddings (Voyage)": {
+      "main": [
+        [
+          {
+            "node": "Unir embeddings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir embeddings": {
+      "main": [
+        [
+          {
+            "node": "Guardar documento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir textos": {
+      "main": [
+        [
+          {
+            "node": "Calcular hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota"
+  },
+  "pinData": {},
+  "active": false
+}

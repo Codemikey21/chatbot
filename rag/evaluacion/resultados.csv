@@ -1,0 +1,20 @@
+pregunta,tipo,acierto,rango_reciproco,similitud_maxima,documentos_recuperados
+¿Cuántos cursos necesito aprobar para obtener la insignia de competencias digitales?,ccd,True,1.0,0.754,ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md|ccd-catalogo-cursos-demo.md
+¿Tengo que cursar los pilares de competencias digitales en orden?,ccd,True,1.0,0.7001,ccd-preguntas-frecuentes-demo.md|ccd-reglamento-insignia-demo.md
+¿Qué temas se ven en el curso de IA Generativa?,ccd,True,1.0,0.6878,ccd-catalogo-cursos-demo.md|ccd-reglamento-insignia-demo.md
+¿Qué producto final se entrega en Habilidades en Analítica Digital?,ccd,True,1.0,0.6497,ccd-catalogo-cursos-demo.md
+¿Cuánto dura la prueba diagnóstica?,ccd,True,1.0,0.5159,ccd-guia-prueba-diagnostica-demo.md
+¿La prueba diagnóstica es eliminatoria?,ccd,True,1.0,0.4306,ccd-guia-prueba-diagnostica-demo.md|reglamento-estudiantil-pregrado.pdf
+¿Los cursos de competencias digitales suman créditos a mi plan de estudios?,ccd,True,1.0,0.6937,ccd-preguntas-frecuentes-demo.md|ccd-reglamento-insignia-demo.md|lineamientos-curriculares-pregrado.pdf
+¿Qué pasa si repruebo un curso de competencias digitales?,ccd,True,1.0,0.6852,ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md
+¿Con qué nota se aprueba un curso de competencias digitales?,ccd,True,1.0,0.5619,ccd-preguntas-frecuentes-demo.md|ccd-reglamento-insignia-demo.md|ccd-catalogo-cursos-demo.md
+¿Cuántas veces puedo cancelar un mismo curso?,reglamento,True,1.0,0.6556,reglamento-estudiantil-pregrado.pdf|ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md
+¿Qué es una homologación de cursos?,reglamento,True,1.0,0.5382,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
+¿Cuáles son los deberes de los estudiantes?,reglamento,True,1.0,0.6105,reglamento-estudiantil-pregrado.pdf
+¿Qué se necesita para obtener el grado?,reglamento,True,1.0,0.5652,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
+¿Cómo se calcula el promedio ponderado del estudiante?,reglamento,True,1.0,0.5384,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
+¿A cuántas horas de trabajo equivale un crédito académico?,lineamientos,True,0.5,0.6714,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
+¿Cómo se organiza el plan de estudios según los lineamientos curriculares?,lineamientos,True,1.0,0.6812,lineamientos-curriculares-pregrado.pdf|reglamento-estudiantil-pregrado.pdf
+¿Cuál es la receta del ajiaco santafereño?,fuera_de_alcance,True,,0.0,
+¿Quién ganó el último mundial de fútbol?,fuera_de_alcance,True,,0.0,
+¿Cuál es el precio del dólar hoy?,fuera_de_alcance,True,,0.0,
