@@ -37,5 +37,28 @@ Cada entrada indica la fecha, qué se decidió y por qué.
 - **Motivo:** cumple el requisito (OpenAI o Claude) con créditos de la API de Claude disponibles para el proyecto, sin costo adicional. Anthropic no ofrece un modelo de embeddings propio; Voyage AI incluye 200 millones de tokens gratis por cuenta.
 - **Reemplaza:** la decisión del 2026-11-13 de usar OpenAI.
 
+## 2026-11-14 — Modelos y dimensión de los vectores
+- **Decisión:** el chat usa `claude-haiku-5-5` y los embeddings usan `voyage-4` con 1024 dimensiones.
+- **Motivo:** Haiku es el modelo más económico de Claude y basta para clasificar y responder con contexto. Si la calidad no alcanza, se cambia a `claude-sonnet-5-5` desde la variable `ANTHROPIC_CHAT_MODEL`, sin tocar código. 1024 es la dimensión por defecto de `voyage-4` y es compatible con los índices de pgvector.
+- **Verificación:** un workflow auxiliar de n8n confirmó la respuesta del modelo y un embedding de 1024 valores.
+
+## 2026-11-14 — Conexión de n8n a Supabase
+- **Decisión:** n8n se conecta por el session pooler (puerto 5432) con SSL obligatorio y la opción "Ignore SSL Issues" activada.
+- **Motivo:** con la verificación del certificado activa, la conexión al pooler fallaba. El tráfico sigue cifrado; solo se omite la validación del certificado.
+- **Mejora posible:** cargar el certificado raíz de Supabase para validar la conexión.
+
+## 2026-11-14 — Llamadas a Voyage AI con HTTP Request
+- **Decisión:** n8n llama a la API de Voyage con el nodo HTTP Request y una credencial de tipo Header Auth.
+- **Motivo:** n8n no tiene un nodo oficial de Voyage. Evitar nodos de la comunidad reduce dependencias y permite guardar los vectores en las tablas propias del proyecto.
+
+## 2026-11-14 — Calendario académico en Google Sheets
+- **Decisión:** el calendario DEMO está en una hoja de Google Sheets (pestaña `calendario`), cargada desde `database/seeds/calendario_demo.csv`, con las fechas como texto en formato AAAA-MM-DD. n8n la lee con una cuenta de servicio que solo tiene permiso de lectura sobre esa hoja.
+- **Motivo:** el requisito pide Google Sheets como fuente del calendario. Las columnas coinciden con la tabla del calendario en PostgreSQL para poder sincronizarlas.
+
+## 2026-11-14 — Alcance de los datos académicos
+- **Decisión:** solo se modela el programa de Ingeniería de Sistemas, con su pensum (47 asignaturas, 134 créditos). Los NRC, los prerrequisitos, los estudiantes y las notas son sintéticos y se marcan como DEMO.
+- **Motivo:** el foco del chatbot son los cursos de competencias digitales (tres pilares; cada uno se aprueba con un curso y se pueden cursar en cualquier orden). La información de la carrera se usa como respaldo para las preguntas de avance y semestres restantes.
+
 ## Pendientes
-- Modelo de Claude, modelo de Voyage y dimensión de los vectores (paso 6 de la Fase 0).
+- Confirmar con el profesor el uso de Flutter en lugar de Kotlin y Jetpack Compose.
+- Reemplazar los prerrequisitos DEMO por los oficiales si se consiguen.
