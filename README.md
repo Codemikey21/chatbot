@@ -186,7 +186,7 @@ Cada bloqueo queda registrado en la tabla `evento_seguridad`.
 
 | Suite | Resultado |
 |---|---|
-| Chat de punta a punta en n8n (`tests/integracion/probar_chat.py`) | 22/22 |
+| Chat de punta a punta en n8n (`tests/integracion/probar_chat.py`) | 23/23 |
 | API de punta a punta, local y contra AWS (`tests/integracion/probar_api.py`) | 12/12 |
 | API, pruebas unitarias (`backend/`) | 36 aprobadas |
 | App Flutter (`flutter test`) | 9 aprobadas |

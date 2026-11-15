@@ -12,7 +12,7 @@ Resultados registrados en el entorno local (Docker en el equipo de desarrollo, S
 | API FastAPI (`pytest`) | Login, sesiones, límites de uso, datos del estudiante, chat con n8n simulado y CORS | 36 | 36 aprobadas | 2026-11-14 |
 | Scraper (`pytest`) | Limpieza, extractores RSS y HTML, `robots.txt` y API | 25 | Por registrar | — |
 | App Flutter (`flutter test`) | Fechas en español, modelos de la API y componentes (anillo de progreso, estado de error) | 9 | 9 aprobadas | 2026-11-14 |
-| Chat de punta a punta (`probar_chat.py`) | WF01 con RAG, calendario, MCP, noticias, guardrails, memoria, seguimiento y tokens | 23 | 22/22 antes del caso de seguimiento; por registrar con los 23 | 2026-11-14 |
+| Chat de punta a punta (`probar_chat.py`) | WF01 con RAG, calendario, MCP, noticias, guardrails, memoria, seguimiento y tokens | 23 | 23/23 | 2026-11-14 |
 | API de punta a punta (`probar_api.py`) | Login, pantallas de datos, chat real y memoria | 12 | 12/12 | 2026-11-14 |
 | API en AWS EC2 (`probar_api.py` con `API_URL` del dominio) | Lo mismo, por HTTPS desde internet contra la instancia | 12 | 12/12 | 2026-11-14 |
 | Evaluación del RAG (`evaluar.py`) | Recuperación de documentos y rechazo fuera de alcance | 22 preguntas | acierto@5 100 %, MRR 0,97, rechazo 100 % | 2026-11-14 |
