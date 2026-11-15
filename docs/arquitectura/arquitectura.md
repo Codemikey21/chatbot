@@ -113,7 +113,7 @@ El clasificador de WF01 (Claude con salida JSON) asigna una o varias intenciones
 
 | Capa | Medida |
 |---|---|
-| Red | Solo la API (y en EC2 el MCP) se publican. n8n y el scraper no tienen puertos abiertos a internet. |
+| Red | En EC2 solo Caddy publica puertos (80, 443 y 9000, con HTTPS). La API y el MCP quedan detrás de Caddy; n8n y el scraper no tienen puertos abiertos a internet y n8n se administra por túnel SSH. SSH solo acepta la IP del desarrollador. |
 | Identidad | JWT HS256 con emisor, audiencia y vencimiento, verificado en la API, en WF01, en WF03 y en el servidor MCP. El código del estudiante sale del token, nunca del mensaje ni del modelo. |
 | Datos | RLS en PostgreSQL con `app.estudiante_id` fijado en cada transacción. Pedir datos de otro estudiante devuelve vacío o 404. |
 | Mínimo privilegio | Roles separados `chatbot_api`, `chatbot_n8n` y `chatbot_mcp`. El MCP es de solo lectura y el scraper no tiene acceso a la base. |
@@ -128,15 +128,15 @@ El clasificador de WF01 (Claude con salida JSON) asigna una o varias intenciones
 
 **Local (verificado):** los cuatro servicios corren con `docker compose up -d` en el equipo de desarrollo, con los puertos publicados solo en `127.0.0.1`. La app se conecta desde el emulador por `10.0.2.2:8080` o desde un celular Android por USB con `adb reverse`. Los pasos están en `docs/manual-instalacion.md`.
 
-**AWS EC2 (pendiente, fase 8):** el plan es una instancia Ubuntu en el Learner Lab (us-west-2, misma región de Supabase) con Elastic IP, el dominio `chatbot-unab-demo.duckdns.org` y Caddy como proxy con HTTPS:
+**AWS EC2 (verificado el 2026-11-14):** instancia `t3.medium` con Ubuntu 24.04 en el Learner Lab (us-west-2, la misma región de Supabase), con IP elástica, el dominio `chatbot-unab-demo.duckdns.org` y Caddy como proxy con HTTPS automático (Let's Encrypt). Se levanta con `docker-compose.yml` más `docker-compose.aws.yml`.
 
 | Puerto | Uso |
 |---|---|
 | 22 | SSH, solo desde la IP del desarrollador (también sirve de túnel para entrar a n8n) |
-| 80 y 443 | Caddy: certificado HTTPS y la API en `/api/v1` |
+| 80 y 443 | Caddy: certificado HTTPS, la API en `/api/v1` y la versión web de la app en `/` |
 | 9000 | Servidor MCP con HTTP streamable detrás de Caddy con HTTPS, como pide la actividad |
 
-Los contenedores usan `restart: unless-stopped`, así que vuelven a arrancar solos cuando el laboratorio se reinicia.
+La versión web y la API comparten el dominio, así que no hace falta CORS en producción. La documentación interactiva de la API (`/docs`) está apagada en AWS. Los contenedores usan `restart: unless-stopped`, así que vuelven a arrancar solos cuando el laboratorio se reinicia. Los pasos están en `docs/manual-instalacion.md` (sección 12).
 
 ## Documentos relacionados
 

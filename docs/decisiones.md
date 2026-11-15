@@ -91,6 +91,12 @@ Cada entrada indica la fecha, qué se decidió y por qué.
 - **Decisión:** los documentos DEMO del CCD incluyen el valor de cada curso ($392.000 por inscripción), que la insignia es requisito de grado y que la Práctica Profesional exige 110 créditos aprobados y la insignia completa. La regla de la práctica también está en la base (`practica_requiere_insignia` en `regla_academica`) y en la columna `habilitada` de `v_asignaturas_pendientes` (migración 010).
 - **Motivo:** son preguntas frecuentes de los estudiantes que el chatbot no podía responder. El valor y las dos reglas los indicó el estudiante autor del proyecto; se mantienen dentro de los documentos marcados como DEMO. Al estar la regla en la base, el servidor MCP y la app no muestran la práctica como habilitada si falta la insignia.
 
+## 2026-11-14 — Despliegue en AWS EC2 con Caddy
+- **Decisión:** una instancia `t3.medium` con Ubuntu 24.04 en us-west-2, IP elástica y el dominio `chatbot-unab-demo.duckdns.org`. Caddy publica con HTTPS automático la API (`/api/v1`), la versión web de la app (`/`) y el servidor MCP (puerto 9000). n8n y el scraper no tienen puertos públicos; n8n se administra por túnel SSH. El SSH solo acepta la IPv4 del desarrollador.
+- **Motivo:** cumple el puerto 9000 con HTTP streamable que pide la actividad y no expone herramientas administrativas. Ubuntu 24.04 tiene soporte oficial de Docker. Servir la web y la API desde el mismo dominio evita configurar CORS en producción.
+- **Migración de n8n:** el volumen de n8n se copió del equipo local a la instancia con el mismo `N8N_ENCRYPTION_KEY`, así que las credenciales y los workflows publicados pasaron sin volver a crearlos.
+- **iPhone:** la app nativa para iOS necesita un Mac con Xcode y una cuenta de Apple. Para usarla en un iPhone se publica la versión web de la misma app (Flutter web), que se puede agregar a la pantalla de inicio.
+
 ## Pendientes
 - Confirmar con el profesor el uso de Flutter en lugar de Kotlin y Jetpack Compose.
 - Reemplazar los prerrequisitos DEMO por los oficiales si se consiguen.

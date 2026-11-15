@@ -1,6 +1,6 @@
 # Manual de instalación
 
-Guía para levantar el asistente académico desde cero en un equipo con Windows (los comandos de Docker y Python son iguales en Linux y macOS). Al final está la parte de AWS EC2.
+Guía para levantar el asistente académico desde cero en un equipo con Windows (los comandos de Docker y Python son iguales en Linux y macOS). La sección 12 explica el despliegue en AWS EC2.
 
 > Los datos académicos son **demostrativos** (DEMO): estudiantes, notas, NRC, prerrequisitos y calendario son ficticios. Ver `docs/decisiones.md`.
 
@@ -152,7 +152,7 @@ adb reverse tcp:8080 tcp:8080
 flutter run --dart-define=API_URL=http://localhost:8080/api/v1
 ```
 
-**APK para instalar** (cuando la API esté publicada con HTTPS):
+**APK para instalar** (usa la API publicada en AWS, sección 12):
 
 ```powershell
 flutter build apk --release --dart-define=API_URL=https://chatbot-unab-demo.duckdns.org/api/v1
@@ -178,12 +178,121 @@ Más casos en `n8n/README.md` y en el README de cada servicio.
 
 ## 12. Despliegue en AWS EC2
 
-> **Pendiente (fase 8).** Esta sección se completa con los archivos de despliegue (`infrastructure/`) cuando se monte y se verifique la instancia. Hasta entonces el sistema solo está probado en local.
+Verificado el 2026-11-14: la API, el chat y el servidor MCP responden por HTTPS desde internet (ver `docs/pruebas.md`), y la versión web de la app queda publicada en la raíz del dominio.
 
-Plan:
+```text
+Internet ──► Caddy (80, 443, 9000, HTTPS) ──► api:8080        /api/v1 y /health
+                                          ├─► /srv/web        versión web de la app
+                                          └─► mcp-server:9000 :9000/mcp
+            n8n (5678) y scraper (8000): solo red interna; n8n se administra por túnel SSH
+```
 
-1. Instancia Ubuntu en el Learner Lab de AWS Academy, región us-west-2, con Elastic IP.
-2. Security Group: 22 solo desde la IP del desarrollador, 80 y 443 para Caddy, 9000 para el servidor MCP con HTTPS.
-3. Docker y Docker Compose en la instancia, el repositorio clonado y el `.env` copiado por SSH.
-4. Caddy como proxy con HTTPS para `chatbot-unab-demo.duckdns.org` (API en `/api/v1` y MCP en el puerto 9000). n8n queda sin publicar y se administra por túnel SSH.
-5. Como las sesiones del laboratorio duran 4 horas, hay que iniciar el laboratorio unos 40 minutos antes de la demostración.
+### 12.1 Instancia (consola de AWS Academy)
+
+1. Learner Lab → **Start Lab** → **AWS**. Región **us-west-2 (Oregón)**, la misma de Supabase.
+2. **EC2 → Lanzar instancia:** nombre `chatbot-unab`, **Ubuntu Server 24.04 LTS** (64 bits x86), tipo `t3.medium`, un par de claves RSA en formato `.pem` y **30 GiB** gp3.
+3. **Grupo de seguridad** `chatbot-sg`:
+
+| Puerto | Origen | Uso |
+|---|---|---|
+| 22 (SSH) | Solo la IPv4 del desarrollador (`x.x.x.x/32`) | Administración y túnel a n8n |
+| 80 (HTTP) | Cualquier lugar | Certificado de Let's Encrypt y redirección a HTTPS |
+| 443 (HTTPS) | Cualquier lugar | API y versión web |
+| 9000 (TCP) | Cualquier lugar | Servidor MCP con HTTPS |
+
+   "Mi IP" de la consola puede tomar la IPv6 del equipo; la instancia solo tiene IPv4, así que se usa la IPv4 (`curl.exe -4 ifconfig.me`).
+4. **Direcciones IP elásticas → Asignar** y **Asociar** a la instancia, para que la IP no cambie al reiniciar el laboratorio.
+5. En **duckdns.org**, el dominio `chatbot-unab-demo` apunta a la IP elástica.
+6. La llave `.pem` se guarda en `C:\Users\<usuario>\.ssh\` y se deja solo para el usuario:
+
+   ```powershell
+   icacls $HOME\.ssh\chatbot-key.pem /inheritance:r /grant:r "$($env:USERNAME):R"
+   ssh -i $HOME\.ssh\chatbot-key.pem ubuntu@<IP-elastica>
+   ```
+
+### 12.2 Desde el PC
+
+```powershell
+git push
+
+# Respaldo de n8n (credenciales y workflows publicados). Queda en secrets/, que no se sube a GitHub
+docker compose stop n8n
+docker run --rm -v chatbot_n8n_data:/datos -v "${PWD}\secrets:/respaldo" alpine tar czf /respaldo/n8n_data.tgz -C /datos .
+
+# Versión web apuntando al dominio
+cd mobile_app
+flutter build web --release --dart-define=API_URL=https://chatbot-unab-demo.duckdns.org/api/v1
+cd ..
+
+# Copiar a la instancia
+scp -i $HOME\.ssh\chatbot-key.pem .env secrets\n8n_data.tgz ubuntu@<IP-elastica>:/home/ubuntu/
+scp -i $HOME\.ssh\chatbot-key.pem -r mobile_app\build\web ubuntu@<IP-elastica>:/home/ubuntu/web
+```
+
+Como el `.env` lleva la misma `N8N_ENCRYPTION_KEY`, las credenciales de n8n se pueden leer en la instancia sin volver a crearlas.
+
+### 12.3 En la instancia
+
+```bash
+git clone https://github.com/Codemikey21/chatbot.git
+cd chatbot
+bash infrastructure/aws/instalar.sh     # Docker, Compose, 2 GB de swap y hora de Bogotá
+exit                                     # volver a entrar para usar docker sin sudo
+```
+
+```bash
+cd ~/chatbot
+mv ~/.env .env && chmod 600 .env
+sed -i 's/\r$//' .env
+sed -i 's/^APP_ENV=.*/APP_ENV=aws/; s/^CORS_ORIGINS=.*/CORS_ORIGINS=/' .env
+grep -q '^DOMINIO=' .env || echo 'DOMINIO=chatbot-unab-demo.duckdns.org' >> .env
+
+mkdir -p mobile_app/build && mv ~/web mobile_app/build/web
+docker volume create chatbot_n8n_data
+docker run --rm -v chatbot_n8n_data:/datos -v ~/:/respaldo alpine tar xzf /respaldo/n8n_data.tgz -C /datos
+
+echo "alias dc='docker compose -f docker-compose.yml -f docker-compose.aws.yml'" >> ~/.bashrc && source ~/.bashrc
+getent hosts chatbot-unab-demo.duckdns.org   # debe mostrar la IP elástica
+dc up -d --build
+dc ps
+```
+
+`CORS_ORIGINS` queda vacío porque la versión web y la API se sirven desde el mismo dominio.
+
+### 12.4 Verificación
+
+```bash
+curl -s https://chatbot-unab-demo.duckdns.org/health        # {"estado":"ok","base_de_datos":true,"n8n":true}
+curl -s https://chatbot-unab-demo.duckdns.org:9000/health   # {"estado":"ok","base_de_datos":true}
+```
+
+Desde el PC, la prueba de la API contra AWS:
+
+```powershell
+$env:API_URL="https://chatbot-unab-demo.duckdns.org/api/v1"
+mcp-server\.venv\Scripts\python.exe tests\integracion\probar_api.py
+Remove-Item Env:API_URL
+```
+
+### 12.5 Uso diario
+
+| Tarea | Cómo |
+|---|---|
+| Encender | Learner Lab → **Start Lab**. La instancia vuelve a encender y los contenedores arrancan solos (`restart: unless-stopped`). Esperar unos 5 minutos y abrir `/health`. |
+| Antes de la demostración | Iniciar el laboratorio unos 40 minutos antes. La sesión dura 4 horas; **Start Lab** otra vez la renueva. |
+| Entrar a n8n | `ssh -i $HOME\.ssh\chatbot-key.pem -L 5678:localhost:5678 ubuntu@<IP-elastica>` y abrir `http://localhost:5678` en el PC |
+| Ver registros | `dc logs -f api` (o `caddy`, `n8n`, `mcp-server`, `scraper`) |
+| Actualizar el código | `cd ~/chatbot && git pull && dc up -d --build` |
+| Actualizar la versión web | Compilarla en el PC y copiarla de nuevo a `~/chatbot/mobile_app/build/web` |
+| APK para Android | `flutter build apk --release --dart-define=API_URL=https://chatbot-unab-demo.duckdns.org/api/v1` (con `--split-per-abi` sale un archivo más liviano por tipo de procesador) |
+| iPhone | Abrir `https://chatbot-unab-demo.duckdns.org` en Safari → Compartir → **Agregar a pantalla de inicio** |
+
+### 12.6 Problemas comunes en AWS
+
+| Síntoma | Causa probable | Solución |
+|---|---|---|
+| `Permission denied (publickey)` | Ruta o permisos de la llave `.pem` | Revisar la ruta y aplicar el `icacls` del paso 12.1 |
+| SSH no conecta (tiempo agotado) | Cambió la IP de la casa | Editar la regla 22 del grupo de seguridad con la IPv4 nueva |
+| HTTPS no funciona o el navegador avisa del certificado | El dominio no apunta a la IP elástica | `getent hosts chatbot-unab-demo.duckdns.org`, corregir en DuckDNS y `dc restart caddy` |
+| `/health` con `"n8n": false` | n8n sigue arrancando | Esperar un minuto y revisar `dc logs n8n` |
+| El chat responde "no está disponible" | Workflows sin publicar en la instancia | Entrar a n8n por túnel y publicarlos |

@@ -4,7 +4,7 @@ El sistema se prueba en cuatro niveles: pruebas unitarias de cada servicio, prue
 
 ## Resumen de resultados
 
-Resultados registrados en el entorno local (Docker en el equipo de desarrollo, Supabase en la nube y Claude real). Las filas marcadas *por registrar* se vuelven a correr antes de la entrega para dejar la evidencia.
+Resultados registrados en el entorno local (Docker en el equipo de desarrollo, Supabase en la nube y Claude real) y en AWS EC2. Las filas marcadas *por registrar* se vuelven a correr antes de la entrega para dejar la evidencia.
 
 | Suite | Qué cubre | Pruebas | Resultado | Fecha |
 |---|---|---:|---|---|
@@ -14,6 +14,7 @@ Resultados registrados en el entorno local (Docker en el equipo de desarrollo, S
 | App Flutter (`flutter test`) | Fechas en español, modelos de la API y componentes (anillo de progreso, estado de error) | 9 | 9 aprobadas | 2026-11-14 |
 | Chat de punta a punta (`probar_chat.py`) | WF01 con RAG, calendario, MCP, noticias, guardrails, memoria, seguimiento y tokens | 23 | 22/22 antes del caso de seguimiento; por registrar con los 23 | 2026-11-14 |
 | API de punta a punta (`probar_api.py`) | Login, pantallas de datos, chat real y memoria | 12 | 12/12 | 2026-11-14 |
+| API en AWS EC2 (`probar_api.py` con `API_URL` del dominio) | Lo mismo, por HTTPS desde internet contra la instancia | 12 | 12/12 | 2026-11-14 |
 | Evaluación del RAG (`evaluar.py`) | Recuperación de documentos y rechazo fuera de alcance | 22 preguntas | acierto@5 100 %, MRR 0,97, rechazo 100 % | 2026-11-14 |
 
 ## 1. Pruebas unitarias
@@ -122,23 +123,23 @@ Cada bloqueo queda registrado en la tabla `evento_seguridad`.
 
 ## 5. Pruebas funcionales de la app
 
-Recorrido manual con el usuario de prueba `U00900100`. Las capturas se guardan en `docs/evidencias/`.
+Recorrido manual con el usuario de prueba `U00900100` en la versión publicada en AWS. Las capturas están en `docs/evidencias/` (también en el README).
 
 | # | Pantalla | Qué se comprueba | Evidencia |
 |---|---|---|---|
-| 1 | Bienvenida | Foto del campus, logo y botón *Comenzar* | `app-01-bienvenida.png` |
-| 2 | Inicio de sesión | Error con contraseña incorrecta; ingreso con la cuenta de prueba | `app-02-login.png` |
-| 3 | Inicio | Saludo, insignia por pilares, avance y próximo evento | `app-03-inicio.png` |
-| 4 | Chat | Respuesta con fuentes, indicador de escritura y memoria | `app-04-chat.png` |
-| 5 | Cursos | Pilares y secciones abiertas | `app-05-cursos.png` |
-| 6 | Progreso | Avance del plan y semestres restantes | `app-06-progreso.png` |
-| 7 | Recomendaciones | Un curso por pilar pendiente, con su razón | `app-07-recomendaciones.png` |
-| 8 | Calendario | Eventos con su estado | `app-08-calendario.png` |
-| 9 | Noticias | Noticias con fecha, categoría y enlace a la fuente | `app-09-noticias.png` |
-| 10 | Sin conexión | Mensaje claro y botón para reintentar con la API apagada | `app-10-sin-conexion.png` |
+| 1 | Bienvenida | Foto del campus, logo y botón *Comenzar* | `app-01-bienvenida.jpg` |
+| 2 | Inicio de sesión | Error con contraseña incorrecta; ingreso con la cuenta de prueba | `app-02-login.jpg` |
+| 3 | Inicio | Saludo, insignia por pilares, avance y próximo evento | `app-03-inicio.jpg` |
+| 4 | Chat | Respuesta con fuentes, indicador de escritura y memoria | `app-04-chat.jpg` |
+| 5 | Cursos | Pilares y secciones abiertas | `app-05-cursos.jpg` |
+| 6 | Progreso | Avance del plan y semestres restantes | `app-06-progreso.jpg` |
+| 7 | Recomendaciones | Un curso por pilar pendiente, con su razón | `app-07-recomendaciones.jpg` |
+| 8 | Calendario | Eventos con su estado | `app-08-calendario.jpg` |
+| 9 | Noticias | Noticias con fecha, categoría y enlace a la fuente | `app-09-noticias.jpg` |
+| 10 | Más | Perfil, accesos, acerca del proyecto y cerrar sesión | `app-10-mas.jpg` |
+| 11 | Sin conexión | Mensaje claro y botón para reintentar con la API apagada | Pendiente |
 
 ## Pendiente
 
 - Registrar los resultados del servidor MCP y del scraper.
-- Tomar las capturas 02 a 10 con el diseño nuevo.
-- Repetir `probar_api.py` y el recorrido de la app contra la API publicada en AWS EC2 (fase 8).
+- Hacer el recorrido de la app con el APK y con la versión web publicada en AWS.
