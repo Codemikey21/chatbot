@@ -265,4 +265,4 @@ chatbot/
 
 ## Autor
 
-**Miguel Ángel Solano Díaz** · Ingeniería de Sistemas, UNAB · [github.com/Codemikey21](https://github.com/Codemikey21)
+**Miguel Ángel Solano Díaz y Andi Lin** · Ingeniería de Sistemas, UNAB · [github.com/Codemikey21](https://github.com/Codemikey21)
