@@ -157,8 +157,8 @@ class PantallaMas extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: Colores.amarilloClaro, borderRadius: BorderRadius.circular(16)),
               child: const Text(
-                'Los estudiantes, notas, cursos, NRC, el calendario y los documentos marcados como DEMO son datos '
-                'demostrativos. No son información oficial de la universidad.',
+                'Entorno de demostración: los estudiantes, notas, cursos, NRC, el calendario y algunos documentos '
+                'son datos sintéticos. No son información oficial de la universidad.',
                 style: TextStyle(color: Colores.amarillo, height: 1.4, fontWeight: FontWeight.w600),
               ),
             ),

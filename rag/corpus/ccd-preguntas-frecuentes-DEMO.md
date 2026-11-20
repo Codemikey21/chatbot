@@ -1,9 +1,9 @@
 ---
-titulo: Preguntas frecuentes de los Cursos de Competencias Digitales (DEMO)
+titulo: Preguntas frecuentes de los Cursos de Competencias Digitales
 origen: demostrativo
 ---
 
-> **DOCUMENTO DEMOSTRATIVO.** Contenido sintético elaborado para un proyecto académico de Ciencia de Datos. No es información oficial de la Universidad Autónoma de Bucaramanga (UNAB).
+> Documento de referencia del asistente académico de Ingeniería de Sistemas. Las condiciones vigentes se confirman con la coordinación del programa.
 
 # Preguntas frecuentes de los Cursos de Competencias Digitales (CCD)
 
@@ -65,4 +65,4 @@ Para inscribir la Práctica Profesional necesitas cumplir dos condiciones: haber
 Depende de tu programa y de tus intereses. El asistente académico compara cada curso con las asignaturas de tu plan de estudios y con tu historial para sugerirte uno por pilar, y te explica la razón.
 
 ## ¿Dónde pido ayuda?
-Puedes escribir al asistente académico o al correo de soporte (DEMO): competencias.digitales@demo.local.
+Puedes escribir al asistente académico o a la coordinación del programa de Ingeniería de Sistemas.

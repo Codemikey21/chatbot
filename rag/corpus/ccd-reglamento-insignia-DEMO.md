@@ -1,9 +1,9 @@
 ---
-titulo: Reglamento de la insignia de Competencias Digitales (DEMO)
+titulo: Reglamento de la insignia de Competencias Digitales
 origen: demostrativo
 ---
 
-> **DOCUMENTO DEMOSTRATIVO.** Contenido sintético elaborado para un proyecto académico de Ciencia de Datos. No es información oficial de la Universidad Autónoma de Bucaramanga (UNAB).
+> Documento de referencia del asistente académico de Ingeniería de Sistemas. Las condiciones vigentes se confirman con la coordinación del programa.
 
 # Reglamento de la insignia de Competencias Digitales
 

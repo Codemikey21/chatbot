@@ -1,9 +1,9 @@
 ---
-titulo: Guía de la prueba diagnóstica de competencias digitales (DEMO)
+titulo: Guía de la prueba diagnóstica de competencias digitales
 origen: demostrativo
 ---
 
-> **DOCUMENTO DEMOSTRATIVO.** Contenido sintético elaborado para un proyecto académico de Ciencia de Datos. No es información oficial de la Universidad Autónoma de Bucaramanga (UNAB).
+> Documento de referencia del asistente académico de Ingeniería de Sistemas. Las condiciones vigentes se confirman con la coordinación del programa.
 
 # Guía de la prueba diagnóstica de competencias digitales
 
@@ -30,7 +30,7 @@ Los estudiantes inscritos en los Cursos de Competencias Digitales (CCD) del peri
 
 ## Fechas
 
-Las fechas de la prueba y de la publicación de resultados se publican en el **calendario académico**. Para el periodo 2027-1 (DEMO): la prueba se presenta del 7 al 9 de diciembre de 2026 y los resultados se publican el 11 de diciembre de 2026.
+Las fechas de la prueba y de la publicación de resultados se publican en el **calendario académico**. Para el periodo 2027-1: la prueba se presenta del 7 al 9 de diciembre de 2026 y los resultados se publican el 11 de diciembre de 2026.
 
 ## Resultados
 

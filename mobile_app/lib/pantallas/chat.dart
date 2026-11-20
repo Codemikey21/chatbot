@@ -564,7 +564,7 @@ class _ChipFuente extends StatelessWidget {
               if (fuente.pagina != null) _Dato(etiqueta: 'Página', valor: '${fuente.pagina}'),
               _Dato(
                 etiqueta: 'Origen',
-                valor: fuente.demostrativa ? 'Documento o dato demostrativo (DEMO)' : 'Documento público',
+                valor: fuente.demostrativa ? 'Fuente interna del asistente' : 'Documento público',
               ),
               if (fuente.url != null) ...[
                 const SizedBox(height: 12),

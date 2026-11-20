@@ -1,9 +1,9 @@
 ---
-titulo: Plan de estudios de Ingeniería de Sistemas (DEMO)
+titulo: Plan de estudios de Ingeniería de Sistemas
 origen: demostrativo
 ---
 
-> **DOCUMENTO DEMOSTRATIVO.** Los nombres de las asignaturas siguen la estructura del programa de Ingeniería de Sistemas, pero los códigos, los prerrequisitos, las reglas y los créditos mínimos son datos de prueba de un proyecto académico de Ciencia de Datos. No es el plan de estudios oficial de la Universidad Autónoma de Bucaramanga (UNAB).
+> Documento de referencia del asistente académico de Ingeniería de Sistemas. Las condiciones vigentes se confirman con la coordinación del programa.
 
 # Plan de estudios de Ingeniería de Sistemas
 

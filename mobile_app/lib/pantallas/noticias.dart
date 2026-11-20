@@ -131,8 +131,6 @@ class _TarjetaNoticia extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (noticia.demostrativa)
-                  const Positioned(right: 12, bottom: 12, child: EtiquetaDemo(texto: 'DEMO', clara: true)),
               ],
             ),
           ),
