@@ -100,3 +100,14 @@ def test_estudiante_con_insignia_no_recibe_recomendaciones():
 def test_calendario_de_inscripciones():
     datos = h.calendario("inscripcion", solo_proximos=False)
     assert {e["id_evento"] for e in datos["eventos"]} == {"EV-003", "EV-007"}
+
+
+def test_matricula_del_proximo_semestre():
+    datos = h.progreso(DEMO)["matricula_proximo_semestre"]
+    nombres = {a["curso_nombre"] for a in datos["asignaturas_sugeridas"]}
+    # Si aprueba lo que cursa en sexto, puede ver las asignaturas de séptimo
+    assert {"Sistemas Inteligentes", "Ciberseguridad", "Calidad de Software"} <= nombres
+    assert all(a["semestre"] == 7 for a in datos["asignaturas_sugeridas"])
+    assert datos["creditos_sugeridos"] <= datos["maximo_creditos"]
+    # La práctica sigue bloqueada: no alcanza 110 créditos
+    assert "Práctica Profesional" not in nombres

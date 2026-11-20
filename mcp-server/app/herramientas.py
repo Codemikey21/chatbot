@@ -236,6 +236,26 @@ def progreso(codigo: str) -> dict[str, Any]:
         (codigo,),
         estudiante=codigo,
     )
+    # Próximo semestre: supone que aprueba lo que cursa ahora y respeta el máximo de créditos
+    proximas = consultar(
+        """
+        select curso_nombre, creditos, semestre, depende_de_en_curso
+        from v_asignaturas_pendientes
+        where estudiante_codigo = %s and habilitada_proximo_periodo and not en_curso
+        order by semestre, curso_nombre
+        """,
+        (codigo,),
+        estudiante=codigo,
+    )
+    maximo = int(proyeccion[0]["max_creditos_semestre"]) if proyeccion else 20
+    sugeridas, otras, total = [], [], 0
+    for asignatura in proximas:
+        if total + asignatura["creditos"] <= maximo:
+            sugeridas.append(asignatura)
+            total += asignatura["creditos"]
+        else:
+            otras.append(asignatura)
+
     return {
         "estudiante": perfil[0],
         "competencias_digitales": {
@@ -255,6 +275,13 @@ def progreso(codigo: str) -> dict[str, Any]:
             ),
         },
         "asignaturas_que_puede_matricular": habilitadas,
+        "matricula_proximo_semestre": {
+            "supuesto": "Supone que el estudiante aprueba las asignaturas que cursa este semestre.",
+            "maximo_creditos": maximo,
+            "creditos_sugeridos": total,
+            "asignaturas_sugeridas": sugeridas,
+            "otras_habilitadas": otras,
+        },
         "aviso": AVISO_DEMO,
     }
 

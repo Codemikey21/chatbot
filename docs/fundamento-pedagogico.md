@@ -39,11 +39,12 @@ El asistente está disponible a cualquier hora y no exige pedir cita, y los Curs
 **Cómo lo implementa el sistema.**
 
 - **Respuestas con evidencia:** el RAG obliga al asistente a responder desde documentos y a nombrarlos. Si no encuentra información con similitud suficiente, lo dice en lugar de inventarla. Esto modela el hábito de verificar fuentes.
+- **Proyecto de grado:** la guía de proyecto de grado y prácticas explica qué es, sus modalidades (desarrollo tecnológico, investigación, emprendimiento y proyecto con empresa) y sus pasos. El asistente recomienda director según la línea que el estudiante mencione (software, ciencia de datos e IA o videojuegos) o, si no la dice, según su historial, y aclara qué docentes vienen de documentos públicos de la UNAB y cuáles son DEMO.
 - **Ruta de investigación del plan:** el plan de estudios DEMO hace visible la cadena Estadística Descriptiva → Ingeniería Basada en Evidencia → Soluciones Innovadoras, y el asistente la explica cuando el estudiante pregunta qué priorizar.
 - **Convocatorias:** el scraper recopila convocatorias y noticias académicas de fuentes públicas y el asistente las consulta.
-- **El propio proyecto como investigación aplicada:** el RAG se evaluó con un conjunto de preguntas y métricas de recuperación (acierto@5, MRR y rechazo fuera de alcance) y el chat con 23 casos de prueba, en lugar de juzgarlos a ojo (ver [pruebas](pruebas.md)).
+- **El propio proyecto como investigación aplicada:** el RAG se evaluó con un conjunto de preguntas y métricas de recuperación (acierto@5, MRR y rechazo fuera de alcance) y el chat con 25 casos de prueba, en lugar de juzgarlos a ojo (ver [pruebas](pruebas.md)).
 
-**Limitación.** La base DEMO no tiene datos de semilleros ni grupos de investigación, así que el asistente no recomienda uno en particular. Agregarlos sería una tabla más y una consulta en el servidor MCP.
+**Limitación.** Los directores reales salen de folletos públicos de posgrado; que aparezcan no garantiza que dirijan proyectos de pregrado este periodo, por eso el asistente pide confirmarlo con la coordinación. La base DEMO no tiene semilleros de investigación.
 
 ## 4. Prompts usados
 

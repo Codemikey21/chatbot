@@ -36,7 +36,9 @@ Proyecto final de Ciencia de Datos · Ingeniería de Sistemas · Universidad Aut
 | Reglamento | ¿Cuántas veces puedo cancelar un mismo curso? | Reglamento estudiantil (RAG, con página) |
 | Fechas y plazos | ¿Hasta cuándo tengo plazo para inscribirme? | Calendario en Google Sheets |
 | Mi historial | ¿Qué cursos de competencias digitales he aprobado? | Servidor MCP sobre PostgreSQL |
-| Matrícula y proyección | ¿Qué materias puedo matricular y cuántos semestres me faltan? | Servidor MCP + calendario |
+| Matrícula del próximo semestre | ¿Qué materias puedo matricular el próximo semestre? (de sexto: las de séptimo, suponiendo que apruebas lo que cursas) | Servidor MCP |
+| Proyección | ¿Cuántos semestres me faltan para graduarme? | Servidor MCP + calendario |
+| Proyecto de grado y prácticas | ¿Qué es el proyecto de grado y qué profesor me recomiendas si me gustan los videojuegos? | Guía de proyecto de grado (RAG) + mi historial |
 | Recomendaciones | ¿Cuál me recomiendas del pilar de tecnologías y por qué? | Servidor MCP (afinidad con el pensum) |
 | Costos y requisitos | ¿Puedo hacer la práctica si debo alguna materia? | Documentos + datos del estudiante |
 | Plan de estudios | ¿Cuál es el prerrequisito de Desarrollo de Aplicaciones Móviles? | Plan de estudios (RAG) |
@@ -159,7 +161,7 @@ sequenceDiagram
 | Herramientas MCP | FastMCP | [`mcp-server/`](mcp-server/) | 7 herramientas de solo lectura, HTTP streamable en el puerto 9000 |
 | RAG | Voyage AI + pgvector | [`rag/`](rag/) | Ingesta, búsqueda híbrida y evaluación |
 | Noticias | Python | [`scraper/`](scraper/) | RSS y HTML respetando `robots.txt` |
-| Base de datos | Supabase PostgreSQL | [`database/`](database/) | 10 migraciones, vistas, RLS y datos DEMO |
+| Base de datos | Supabase PostgreSQL | [`database/`](database/) | 11 migraciones, vistas, RLS y datos DEMO |
 | Infraestructura | Docker, Caddy, AWS EC2 | [`infrastructure/`](infrastructure/) | HTTPS automático y despliegue reproducible |
 </details>
 
@@ -199,6 +201,7 @@ flowchart LR
 | Reglamento | Reglamento estudiantil de pregrado (público, UNAB) |
 | Plan de estudios | Plan de estudios de Ingeniería de Sistemas por semestre, con prerrequisitos (DEMO) y lineamientos curriculares (público, UNAB) |
 | Requisitos | Reglamento de la insignia, catálogo de cursos, prueba diagnóstica y preguntas frecuentes de los CCD (DEMO) |
+| Proyecto de grado y prácticas | Guía con modalidades, pasos, directores por línea (software, datos e IA, videojuegos) y empresas; los docentes y empresas reales vienen de documentos públicos de la UNAB y el resto es DEMO |
 
 Fragmentos de ~1.200 caracteres con 200 de solape, cortados por párrafo o artículo para que cada uno trate una sola idea; embeddings de Voyage `voyage-4` (1024 dimensiones, distingue documento y consulta); umbral de similitud 0,35 elegido con la evaluación. La justificación de cada parámetro está en [`rag/README.md`](rag/README.md#parámetros-y-por-qué).
 
@@ -212,7 +215,7 @@ Recuperación real del conjunto de evaluación:
 | ¿Qué asignaturas se ven en sexto semestre de Ingeniería de Sistemas? | 0,652 | Plan de estudios |
 | ¿Cuál es la receta del ajiaco santafereño? | — | Ninguno: se rechaza |
 
-**Resultado con 25 preguntas:** acierto@5 100 %, MRR 0,95 y 100 % de rechazo de preguntas fuera de alcance ([detalle](docs/pruebas.md#3-evaluación-del-rag)).
+**Resultado con 27 preguntas:** acierto@5 100 %, MRR 0,96 y 100 % de rechazo de preguntas fuera de alcance ([detalle](docs/pruebas.md#3-evaluación-del-rag)).
 
 ## Base de datos
 
@@ -229,6 +232,7 @@ Supabase PostgreSQL con pgvector. El modelo cubre estudiantes, programa, plan de
 | [`005_vistas.sql`](database/migrations/005_vistas.sql) | Historial, avance del plan, insignia, asignaturas habilitadas, **proyección de semestres** y recomendaciones |
 | [`006_roles_seguridad_y_rls.sql`](database/migrations/006_roles_seguridad_y_rls.sql) | Un rol por servicio y políticas RLS por estudiante |
 | [`007`](database/migrations/007_funciones_rag.sql) a [`010`](database/migrations/010_requisito_practica.sql) | Funciones del RAG, del chat y de noticias; requisito de la práctica |
+| [`011_matricula_proximo_semestre.sql`](database/migrations/011_matricula_proximo_semestre.sql) | Materias que podrá matricular el próximo semestre si aprueba lo que cursa ahora |
 | [`seeds/`](database/seeds/) | Catálogo, 12 estudiantes DEMO con historial, calendario y fuentes de noticias |
 
 <table>
@@ -274,7 +278,7 @@ Servidor FastMCP en Python, HTTP streamable en el puerto 9000 (`/mcp`), con toke
 | `consultar_calendario` | Eventos del calendario académico |
 | `consultar_noticias` | Noticias y convocatorias del scraper |
 | `consultar_historial` | Historial del estudiante: periodo, NRC, curso, estado y nota |
-| `consultar_progreso` | Insignia, avance del plan, semestres restantes y materias que puede matricular |
+| `consultar_progreso` | Insignia, avance del plan, semestres restantes, materias que puede matricular hoy y matrícula sugerida para el próximo semestre (hasta 20 créditos) |
 | `obtener_recomendaciones` | Curso recomendado por pilar pendiente, con la razón |
 
 Cómo conectarlo desde n8n, MCP Inspector, Claude u OpenAI: [`mcp-server/README.md`](mcp-server/README.md#conectar-clientes-mcp).
@@ -292,7 +296,7 @@ Matrícula 2027-1: del 12 al 22 de enero de 2027. Faltan 53 días.
 Llevas 81 de 134 créditos (60,4 %); te quedan 53. Estimación: unos 3 semestres.
 ```
 
-Además, [`tests/integracion/probar_chat.py`](tests/integracion/probar_chat.py) envía 23 casos directo al webhook (RAG, calendario, MCP, noticias, memoria, guardrails y tokens falsos o vencidos): **23/23**.
+Además, [`tests/integracion/probar_chat.py`](tests/integracion/probar_chat.py) envía 25 casos directo al webhook (RAG, calendario, MCP, noticias, matrícula del próximo semestre, proyecto de grado, memoria, guardrails y tokens falsos o vencidos): **25/25**.
 
 ## Noticias
 
@@ -315,7 +319,7 @@ Detalle del scraper: [`scraper/README.md`](scraper/README.md).
 |---|---|
 | Educación de precisión | Cada respuesta personal sale de los datos del estudiante: materias habilitadas, proyección con prerrequisitos, cursos recomendados por afinidad con su pensum |
 | Autoaprendizaje | El estudiante planea (qué matricular, cuándo), monitorea (progreso e historial) y reflexiona (el porqué de cada recomendación y la fuente de cada dato) cuando quiera |
-| Investigación | Respuestas con fuente y sin inventar; ruta Estadística → Ingeniería Basada en Evidencia → Soluciones Innovadoras en el plan; convocatorias del scraper |
+| Investigación | Respuestas con fuente y sin inventar; guía de proyecto de grado que recomienda director según la línea o el historial del estudiante; convocatorias del scraper |
 
 El prompt completo del agente, la relación de cada regla con estos enfoques y las referencias (Hart, 2016; Zimmerman, 2002; Yang, 2021, entre otras) están en [`docs/fundamento-pedagogico.md`](docs/fundamento-pedagogico.md).
 
@@ -324,13 +328,13 @@ El prompt completo del agente, la relación de cada regla con estos enfoques y l
 
 | Suite | Resultado |
 |---|---|
-| Chat de punta a punta en n8n (`tests/integracion/probar_chat.py`) | 23/23 |
+| Chat de punta a punta en n8n (`tests/integracion/probar_chat.py`) | 25/25 |
 | API de punta a punta, local y contra AWS (`tests/integracion/probar_api.py`) | 12/12 |
 | API, pruebas unitarias (`backend/`) | 36 aprobadas |
 | App Flutter (`flutter test`) | 9 aprobadas |
-| Servidor MCP (`pytest`) | 25 aprobadas |
+| Servidor MCP (`pytest`) | 26 aprobadas |
 | Scraper (`pytest`) | 25 aprobadas |
-| Evaluación del RAG (25 preguntas) | acierto@5 100 % · MRR 0,95 · rechazo fuera de alcance 100 % |
+| Evaluación del RAG (27 preguntas) | acierto@5 100 % · MRR 0,96 · rechazo fuera de alcance 100 % |
 
 El detalle de cada caso, incluidas las pruebas de seguridad, está en [`docs/pruebas.md`](docs/pruebas.md).
 
