@@ -1,23 +1,26 @@
 pregunta,tipo,acierto,rango_reciproco,similitud_maxima,documentos_recuperados
-¿Cuántos cursos necesito aprobar para obtener la insignia de competencias digitales?,ccd,True,1.0,0.7535,ccd-reglamento-insignia-demo.md|ccd-catalogo-cursos-demo.md|ccd-preguntas-frecuentes-demo.md
-¿Tengo que cursar los pilares de competencias digitales en orden?,ccd,True,1.0,0.695,ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md
-¿Qué temas se ven en el curso de IA Generativa?,ccd,True,1.0,0.6874,ccd-catalogo-cursos-demo.md|ccd-reglamento-insignia-demo.md
-¿Qué producto final se entrega en Habilidades en Analítica Digital?,ccd,True,1.0,0.6492,ccd-catalogo-cursos-demo.md
-¿Cuánto dura la prueba diagnóstica?,ccd,True,1.0,0.5148,ccd-guia-prueba-diagnostica-demo.md
+¿Cuántos cursos necesito aprobar para obtener la insignia de competencias digitales?,ccd,True,1.0,0.7534,ccd-reglamento-insignia-demo.md|ccd-catalogo-cursos-demo.md|ccd-preguntas-frecuentes-demo.md
+¿Tengo que cursar los pilares de competencias digitales en orden?,ccd,True,1.0,0.6947,ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md
+¿Qué temas se ven en el curso de IA Generativa?,ccd,True,1.0,0.688,ccd-catalogo-cursos-demo.md|ccd-reglamento-insignia-demo.md
+¿Qué producto final se entrega en Habilidades en Analítica Digital?,ccd,True,1.0,0.6491,ccd-catalogo-cursos-demo.md
+¿Cuánto dura la prueba diagnóstica?,ccd,True,1.0,0.5159,ccd-guia-prueba-diagnostica-demo.md
 ¿La prueba diagnóstica es eliminatoria?,ccd,True,1.0,0.4308,ccd-guia-prueba-diagnostica-demo.md|reglamento-estudiantil-pregrado.pdf
-¿Los cursos de competencias digitales suman créditos a mi plan de estudios?,ccd,True,1.0,0.7065,ccd-preguntas-frecuentes-demo.md|ccd-reglamento-insignia-demo.md
-¿Qué pasa si repruebo un curso de competencias digitales?,ccd,True,1.0,0.6853,ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md
-¿Con qué nota se aprueba un curso de competencias digitales?,ccd,True,1.0,0.5606,ccd-preguntas-frecuentes-demo.md|ccd-reglamento-insignia-demo.md|ccd-catalogo-cursos-demo.md|ccd-guia-prueba-diagnostica-demo.md
-¿Cuánto cuesta cada curso de competencias digitales?,ccd,True,1.0,0.6943,ccd-preguntas-frecuentes-demo.md|ccd-reglamento-insignia-demo.md|ccd-catalogo-cursos-demo.md
-¿La insignia de competencias digitales es requisito de grado?,ccd,True,1.0,0.6335,ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md
-¿Puedo hacer la práctica profesional si debo algún curso o materia?,ccd,True,1.0,0.6075,ccd-preguntas-frecuentes-demo.md|reglamento-estudiantil-pregrado.pdf
-¿Cuántas veces puedo cancelar un mismo curso?,reglamento,True,1.0,0.6554,reglamento-estudiantil-pregrado.pdf|ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md
-¿Qué es una homologación de cursos?,reglamento,True,1.0,0.5385,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
-¿Cuáles son los deberes de los estudiantes?,reglamento,True,1.0,0.6105,reglamento-estudiantil-pregrado.pdf
-¿Qué se necesita para obtener el grado?,reglamento,True,1.0,0.5652,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
+¿Los cursos de competencias digitales suman créditos a mi plan de estudios?,ccd,True,1.0,0.7062,ccd-preguntas-frecuentes-demo.md|plan-estudios-ingenieria-sistemas-demo.md|ccd-reglamento-insignia-demo.md
+¿Qué pasa si repruebo un curso de competencias digitales?,ccd,True,1.0,0.685,ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md
+¿Con qué nota se aprueba un curso de competencias digitales?,ccd,True,0.5,0.6055,plan-estudios-ingenieria-sistemas-demo.md|ccd-preguntas-frecuentes-demo.md|ccd-reglamento-insignia-demo.md|ccd-catalogo-cursos-demo.md
+¿Cuánto cuesta cada curso de competencias digitales?,ccd,True,1.0,0.6942,ccd-preguntas-frecuentes-demo.md|ccd-reglamento-insignia-demo.md|ccd-catalogo-cursos-demo.md
+¿La insignia de competencias digitales es requisito de grado?,ccd,True,1.0,0.6338,ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md|plan-estudios-ingenieria-sistemas-demo.md
+¿Puedo hacer la práctica profesional si debo algún curso o materia?,ccd,True,1.0,0.6076,ccd-preguntas-frecuentes-demo.md|reglamento-estudiantil-pregrado.pdf
+¿Cuántas veces puedo cancelar un mismo curso?,reglamento,True,1.0,0.6551,reglamento-estudiantil-pregrado.pdf|ccd-reglamento-insignia-demo.md|ccd-preguntas-frecuentes-demo.md
+¿Qué es una homologación de cursos?,reglamento,True,1.0,0.5384,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
+¿Cuáles son los deberes de los estudiantes?,reglamento,True,1.0,0.611,reglamento-estudiantil-pregrado.pdf
+¿Qué se necesita para obtener el grado?,reglamento,True,1.0,0.5649,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
 ¿Cómo se calcula el promedio ponderado del estudiante?,reglamento,True,1.0,0.5383,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
-¿A cuántas horas de trabajo equivale un crédito académico?,lineamientos,True,0.5,0.6709,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
-¿Cómo se organiza el plan de estudios según los lineamientos curriculares?,lineamientos,True,1.0,0.6812,lineamientos-curriculares-pregrado.pdf|reglamento-estudiantil-pregrado.pdf
+¿A cuántas horas de trabajo equivale un crédito académico?,lineamientos,True,0.5,0.6718,reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
+¿Cómo se organiza el plan de estudios según los lineamientos curriculares?,lineamientos,True,1.0,0.681,lineamientos-curriculares-pregrado.pdf|reglamento-estudiantil-pregrado.pdf
+¿Qué asignaturas se ven en sexto semestre de Ingeniería de Sistemas?,plan,True,1.0,0.6524,plan-estudios-ingenieria-sistemas-demo.md
+¿Cuál es el prerrequisito de Desarrollo de Aplicaciones Móviles?,plan,True,1.0,0.5258,plan-estudios-ingenieria-sistemas-demo.md|lineamientos-curriculares-pregrado.pdf
+¿Cuántos créditos puedo matricular como máximo en un semestre?,plan,True,1.0,0.6558,plan-estudios-ingenieria-sistemas-demo.md|reglamento-estudiantil-pregrado.pdf|lineamientos-curriculares-pregrado.pdf
 ¿Cuál es la receta del ajiaco santafereño?,fuera_de_alcance,True,,0.0,
 ¿Quién ganó el último mundial de fútbol?,fuera_de_alcance,True,,0.0,
 ¿Cuál es el precio del dólar hoy?,fuera_de_alcance,True,,0.0,

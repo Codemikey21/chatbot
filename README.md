@@ -18,7 +18,7 @@ Proyecto final de Ciencia de Datos · Ingeniería de Sistemas · Universidad Aut
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
 [![AWS](https://img.shields.io/badge/AWS-EC2_+_Caddy-FF9900)](docs/manual-instalacion.md#12-despliegue-en-aws-ec2)
 
-[Demo en línea](#demo-en-línea) · [Pantallas](#pantallas) · [Arquitectura](#arquitectura) · [Pruebas](#pruebas) · [Instalación](docs/manual-instalacion.md) · [Decisiones](docs/decisiones.md)
+[Demo](#demo-en-línea) · [Pantallas](#pantallas) · [Arquitectura](#arquitectura) · [RAG](#rag) · [Base de datos](#base-de-datos) · [n8n](#workflows-de-n8n) · [MCP y webhook](#servidor-mcp-y-webhook) · [Noticias](#noticias) · [Enfoque pedagógico](#enfoque-pedagógico) · [Pruebas](#pruebas) · [Manual de usuario](docs/manual-usuario.md)
 
 <br>
 
@@ -36,8 +36,10 @@ Proyecto final de Ciencia de Datos · Ingeniería de Sistemas · Universidad Aut
 | Reglamento | ¿Cuántas veces puedo cancelar un mismo curso? | Reglamento estudiantil (RAG, con página) |
 | Fechas y plazos | ¿Hasta cuándo tengo plazo para inscribirme? | Calendario en Google Sheets |
 | Mi historial | ¿Qué cursos de competencias digitales he aprobado? | Servidor MCP sobre PostgreSQL |
+| Matrícula y proyección | ¿Qué materias puedo matricular y cuántos semestres me faltan? | Servidor MCP + calendario |
 | Recomendaciones | ¿Cuál me recomiendas del pilar de tecnologías y por qué? | Servidor MCP (afinidad con el pensum) |
 | Costos y requisitos | ¿Puedo hacer la práctica si debo alguna materia? | Documentos + datos del estudiante |
+| Plan de estudios | ¿Cuál es el prerrequisito de Desarrollo de Aplicaciones Móviles? | Plan de estudios (RAG) |
 | Novedades | ¿Qué convocatorias se han publicado? | Scraper programado en n8n |
 
 Si la pregunta necesita varias fuentes ("¿cuándo son las inscripciones y qué curso me recomiendas?"), el agente las combina en una sola respuesta. Si algo no está en las fuentes, lo dice en lugar de inventarlo.
@@ -103,6 +105,16 @@ La app solo habla con la API. La API valida el token del estudiante y le pasa la
 
 Detalle completo, contratos entre servicios y diagrama en imagen: [`docs/arquitectura/arquitectura.md`](docs/arquitectura/arquitectura.md).
 
+**Por qué está armado así**
+
+- **Una API delante de n8n.** El webhook de n8n nunca queda expuesto: la API valida el login, limita el uso y firma el token que n8n vuelve a verificar. Así n8n se dedica a orquestar.
+- **Un agente con herramientas en lugar de un flujo por intención.** Muchas preguntas mezclan temas («¿cuándo me inscribo y qué curso me sirve?»). El agente combina RAG, calendario, MCP y noticias en una sola respuesta; el clasificador de intención sigue filtrando lo que está fuera de alcance antes de llamar al modelo.
+- **Datos personales solo por MCP.** El servidor MCP es de solo lectura, recibe el token del estudiante y PostgreSQL aplica seguridad a nivel de fila. El modelo nunca escribe SQL ni ve el token.
+- **RAG híbrido con umbral.** La búsqueda vectorial entiende paráfrasis y la de texto completo encuentra códigos y números de artículo. Si nada supera la similitud mínima, el chatbot dice que no encontró la información.
+- **Todo en Docker.** Cada servicio arranca y se revisa por separado (`/health`), en local y en EC2 con el mismo `docker-compose.yml`.
+
+Todas las decisiones, con fecha y motivo: [`docs/decisiones.md`](docs/decisiones.md).
+
 <details>
 <summary>Flujo de una pregunta, paso a paso</summary>
 <br>
@@ -151,21 +163,6 @@ sequenceDiagram
 | Infraestructura | Docker, Caddy, AWS EC2 | [`infrastructure/`](infrastructure/) | HTTPS automático y despliegue reproducible |
 </details>
 
-<details>
-<summary>Workflows de n8n</summary>
-<br>
-
-| Workflow | Qué hace |
-|---|---|
-| WF01 · Consulta general | Entrada del chat: token → guardrail → memoria → clasificador → agente con herramientas → validación |
-| WF02 · Calendario | Lee la hoja de Google Sheets y calcula si cada evento es próximo, está en curso o terminó |
-| WF03 · Cursos realizados | Verifica el token y llama la herramienta MCP permitida |
-| WF04 · Noticias | Cada 6 horas extrae las fuentes con el scraper y guarda sin duplicados |
-| AUX · Búsqueda en documentos | Embedding de la pregunta y búsqueda híbrida en pgvector |
-| AUX · Ingesta de documentos | Limpia, fragmenta y vectoriza el corpus; solo reprocesa lo que cambió |
-
-Más detalle en [`n8n/README.md`](n8n/README.md).
-</details>
 
 <details>
 <summary>Seguridad</summary>
@@ -182,6 +179,147 @@ Más detalle en [`n8n/README.md`](n8n/README.md).
 Cada bloqueo queda registrado en la tabla `evento_seguridad`.
 </details>
 
+## RAG
+
+```mermaid
+flowchart LR
+    subgraph Ingesta["Ingesta (n8n, solo lo que cambió)"]
+        D[PDF, MD, TXT] --> X[Extraer texto<br/>por página] --> L[Limpiar] --> C["Fragmentar<br/>~1.200 car. · solape 200"] --> E1[Voyage voyage-4<br/>1024 dim.] --> V[(pgvector)]
+    end
+    subgraph Consulta
+        P[Pregunta] --> E2[Embedding] --> H["Búsqueda híbrida<br/>vector + texto (RRF)"] --> U{"¿similitud<br/>≥ 0,35?"}
+        U -- sí --> F[5 fragmentos<br/>con documento y página] --> M[Claude responde<br/>y cita la fuente]
+        U -- no --> N[«No encontré esa<br/>información»]
+    end
+    V -.-> H
+```
+
+| Tipo | Documentos |
+|---|---|
+| Reglamento | Reglamento estudiantil de pregrado (público, UNAB) |
+| Plan de estudios | Plan de estudios de Ingeniería de Sistemas por semestre, con prerrequisitos (DEMO) y lineamientos curriculares (público, UNAB) |
+| Requisitos | Reglamento de la insignia, catálogo de cursos, prueba diagnóstica y preguntas frecuentes de los CCD (DEMO) |
+
+Fragmentos de ~1.200 caracteres con 200 de solape, cortados por párrafo o artículo para que cada uno trate una sola idea; embeddings de Voyage `voyage-4` (1024 dimensiones, distingue documento y consulta); umbral de similitud 0,35 elegido con la evaluación. La justificación de cada parámetro está en [`rag/README.md`](rag/README.md#parámetros-y-por-qué).
+
+Recuperación real del conjunto de evaluación:
+
+| Pregunta | Similitud | Primer documento recuperado |
+|---|---:|---|
+| ¿Cuántos cursos necesito aprobar para obtener la insignia? | 0,754 | Reglamento de la insignia |
+| ¿Cuántas veces puedo cancelar un mismo curso? | 0,655 | Reglamento estudiantil |
+| ¿Cómo se organiza el plan de estudios según los lineamientos curriculares? | 0,681 | Lineamientos curriculares |
+| ¿Qué asignaturas se ven en sexto semestre de Ingeniería de Sistemas? | 0,652 | Plan de estudios |
+| ¿Cuál es la receta del ajiaco santafereño? | — | Ninguno: se rechaza |
+
+**Resultado con 25 preguntas:** acierto@5 100 %, MRR 0,95 y 100 % de rechazo de preguntas fuera de alcance ([detalle](docs/pruebas.md#3-evaluación-del-rag)).
+
+## Base de datos
+
+<p align="center"><img src="docs/arquitectura/modelo-er.png" alt="Modelo entidad-relación" width="900"></p>
+
+Supabase PostgreSQL con pgvector. El modelo cubre estudiantes, programa, plan de estudios, asignaturas, prerrequisitos, periodos, secciones (NRC), matrículas, inscripciones con nota, reglas académicas, calendario, documentos y fragmentos con embeddings, noticias, sesiones y mensajes del chat.
+
+| Script | Contenido |
+|---|---|
+| [`001_extensiones_y_catalogo.sql`](database/migrations/001_extensiones_y_catalogo.sql) | pgvector, programa, pilares, cursos, plan de estudios, requisitos, reglas, periodos y secciones |
+| [`002_estudiantes_e_historial.sql`](database/migrations/002_estudiantes_e_historial.sql) | Estudiantes, credenciales, matrículas e inscripciones con nota |
+| [`003_calendario_rag_noticias.sql`](database/migrations/003_calendario_rag_noticias.sql) | Calendario, documentos, fragmentos (`vector(1024)`, índice HNSW) y noticias |
+| [`004_chat_y_seguridad.sql`](database/migrations/004_chat_y_seguridad.sql) | Sesiones y mensajes del chat, eventos de seguridad |
+| [`005_vistas.sql`](database/migrations/005_vistas.sql) | Historial, avance del plan, insignia, asignaturas habilitadas, **proyección de semestres** y recomendaciones |
+| [`006_roles_seguridad_y_rls.sql`](database/migrations/006_roles_seguridad_y_rls.sql) | Un rol por servicio y políticas RLS por estudiante |
+| [`007`](database/migrations/007_funciones_rag.sql) a [`010`](database/migrations/010_requisito_practica.sql) | Funciones del RAG, del chat y de noticias; requisito de la práctica |
+| [`seeds/`](database/seeds/) | Catálogo, 12 estudiantes DEMO con historial, calendario y fuentes de noticias |
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/evidencias/ev-supabase-tablas.jpg" width="290"><br><sub>Tabla <code>inscripcion</code> en Supabase (412 registros)</sub></td>
+    <td align="center"><img src="docs/evidencias/ev-supabase-historial.jpg" width="290"><br><sub>Historial con notas de un estudiante</sub></td>
+    <td align="center"><img src="docs/evidencias/ev-supabase-proyeccion.jpg" width="290"><br><sub>Proyección de semestres restantes</sub></td>
+  </tr>
+</table>
+
+## Workflows de n8n
+
+<p align="center"><img src="docs/evidencias/ev-n8n-flujo.jpg" alt="WF01 en n8n" width="900"></p>
+
+WF01 recibe la pregunta, verifica el token, aplica el guardrail de entrada, recupera la memoria, clasifica la intención y pasa al agente con Claude y sus cuatro herramientas. La respuesta pasa por el guardrail de salida y se guarda el turno.
+
+| Workflow | Qué hace |
+|---|---|
+| WF01 · Consulta general | Entrada del chat: token → guardrail → memoria → clasificador → agente con herramientas → validación |
+| WF02 · Calendario | Lee la hoja de Google Sheets y calcula si cada evento es próximo, está en curso o terminó |
+| WF03 · Cursos realizados | Verifica el token y llama la herramienta MCP permitida |
+| WF04 · Noticias | Cada 6 horas extrae las fuentes con el scraper y guarda sin duplicados |
+| AUX · Búsqueda en documentos | Embedding de la pregunta y búsqueda híbrida en pgvector |
+| AUX · Ingesta de documentos | Limpia, fragmenta y vectoriza el corpus; solo reprocesa lo que cambió |
+
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="docs/evidencias/ev-n8n-ejecucion.jpg" width="400"><br><sub>Ejecución exitosa de WF01: el agente usa <code>consultar_calendario</code></sub></td>
+    <td align="center" width="50%"><img src="docs/evidencias/ev-mcp-respuesta.jpg" width="400"><br><sub>WF03 llamando al servidor MCP: historial del estudiante desde PostgreSQL</sub></td>
+  </tr>
+</table>
+
+Los JSON importables están en [`n8n/workflows/`](n8n/workflows/) y la guía de importación en [`n8n/README.md`](n8n/README.md).
+
+## Servidor MCP y webhook
+
+Servidor FastMCP en Python, HTTP streamable en el puerto 9000 (`/mcp`), con token Bearer. Todas las herramientas son de solo lectura y consultan PostgreSQL con consultas parametrizadas.
+
+| Herramienta | Qué devuelve |
+|---|---|
+| `consultar_cursos_disponibles` | Cursos de competencias digitales abiertos (NRC, cupos, modalidad), pilares y regla de la insignia |
+| `obtener_requisitos` | Prerrequisitos y correquisitos de un curso; con token, si el estudiante ya puede matricularlo |
+| `consultar_calendario` | Eventos del calendario académico |
+| `consultar_noticias` | Noticias y convocatorias del scraper |
+| `consultar_historial` | Historial del estudiante: periodo, NRC, curso, estado y nota |
+| `consultar_progreso` | Insignia, avance del plan, semestres restantes y materias que puede matricular |
+| `obtener_recomendaciones` | Curso recomendado por pilar pendiente, con la razón |
+
+Cómo conectarlo desde n8n, MCP Inspector, Claude u OpenAI: [`mcp-server/README.md`](mcp-server/README.md#conectar-clientes-mcp).
+
+**Prueba del webhook.** La app y Swagger llaman a `POST /api/v1/chat`, que reenvía la pregunta al webhook de WF01. Ejemplo real con el estudiante DEMO:
+
+<p align="center"><img src="docs/evidencias/ev-api-chat.jpg" alt="Petición al chat desde Swagger" width="560"></p>
+
+```text
+Pregunta:  ¿Qué materias puedo matricular el próximo semestre y cuántos semestres me faltan para graduarme?
+Herramientas: consultar_mis_datos (MCP), consultar_calendario (Google Sheets)
+
+Asignaturas que puedes matricular (semestre 7): Calidad de Software (2 créditos), Dinámica de Sistemas (2 créditos)
+Matrícula 2027-1: del 12 al 22 de enero de 2027. Faltan 53 días.
+Llevas 81 de 134 créditos (60,4 %); te quedan 53. Estimación: unos 3 semestres.
+```
+
+Además, [`tests/integracion/probar_chat.py`](tests/integracion/probar_chat.py) envía 23 casos directo al webhook (RAG, calendario, MCP, noticias, memoria, guardrails y tokens falsos o vencidos): **23/23**.
+
+## Noticias
+
+<img src="docs/evidencias/app-09-noticias.jpg" width="200" align="right">
+
+WF04 se ejecuta cada 6 horas. Por cada fuente activa llama al scraper, que revisa `robots.txt`, descarga el RSS o el HTML, limpia el texto y clasifica la entrada (convocatoria, certificación, curso o noticia). n8n guarda solo lo nuevo, con su fuente y fecha, y el agente lo consulta con `consultar_noticias`.
+
+| Fuente | Tipo | Filtro |
+|---|---|---|
+| UNAB · Noticias | RSS público | Palabras de educación, tecnología e ingeniería (estudiante, curso, convocatoria, tecnología, ingeniería, sistemas, inteligencia artificial…) |
+| Boletín de Competencias Digitales | HTML (DEMO) | Demuestra la extracción con selectores CSS |
+
+Detalle del scraper: [`scraper/README.md`](scraper/README.md).
+
+<br clear="right">
+
+## Enfoque pedagógico
+
+| Enfoque | Cómo se nota en el asistente |
+|---|---|
+| Educación de precisión | Cada respuesta personal sale de los datos del estudiante: materias habilitadas, proyección con prerrequisitos, cursos recomendados por afinidad con su pensum |
+| Autoaprendizaje | El estudiante planea (qué matricular, cuándo), monitorea (progreso e historial) y reflexiona (el porqué de cada recomendación y la fuente de cada dato) cuando quiera |
+| Investigación | Respuestas con fuente y sin inventar; ruta Estadística → Ingeniería Basada en Evidencia → Soluciones Innovadoras en el plan; convocatorias del scraper |
+
+El prompt completo del agente, la relación de cada regla con estos enfoques y las referencias (Hart, 2016; Zimmerman, 2002; Yang, 2021, entre otras) están en [`docs/fundamento-pedagogico.md`](docs/fundamento-pedagogico.md).
+
+
 ## Pruebas
 
 | Suite | Resultado |
@@ -190,7 +328,9 @@ Cada bloqueo queda registrado en la tabla `evento_seguridad`.
 | API de punta a punta, local y contra AWS (`tests/integracion/probar_api.py`) | 12/12 |
 | API, pruebas unitarias (`backend/`) | 36 aprobadas |
 | App Flutter (`flutter test`) | 9 aprobadas |
-| Evaluación del RAG (22 preguntas) | acierto@5 100 % · MRR 0,97 · rechazo fuera de alcance 100 % |
+| Servidor MCP (`pytest`) | 25 aprobadas |
+| Scraper (`pytest`) | 25 aprobadas |
+| Evaluación del RAG (25 preguntas) | acierto@5 100 % · MRR 0,95 · rechazo fuera de alcance 100 % |
 
 El detalle de cada caso, incluidas las pruebas de seguridad, está en [`docs/pruebas.md`](docs/pruebas.md).
 
@@ -228,7 +368,7 @@ chatbot/
 ├── database/            Migraciones SQL y datos DEMO
 ├── infrastructure/      Caddy y despliegue en AWS
 ├── tests/integracion/   Pruebas de punta a punta
-├── docs/                Arquitectura, manual, pruebas, decisiones y evidencias
+├── docs/                Arquitectura, manuales, pruebas, decisiones y evidencias
 ├── docker-compose.yml   Servicios en local
 └── docker-compose.aws.yml  Caddy y ajustes para EC2
 ```
@@ -246,10 +386,10 @@ chatbot/
 | 4 | RAG e ingesta | Completa |
 | 5 | Workflows de n8n | Completa |
 | 6 | Guardrails, intención, memoria y API | Completa |
-| 7 | App móvil | Completa (Flutter en lugar de Kotlin, pendiente de confirmar con el profesor) |
+| 7 | App móvil | Completa (Flutter en lugar de Kotlin, aprobado por el profesor) |
 | 8 | Despliegue en AWS EC2 | Completa |
 | 9 | Pruebas | Completa en local y en AWS |
-| 10 | Documentación y video | En curso: falta grabar el video |
+| 10 | Documentación y video | Completa |
 </details>
 
 ## Documentación
@@ -258,9 +398,12 @@ chatbot/
 |---|---|
 | [Arquitectura](docs/arquitectura/arquitectura.md) | Componentes, contratos, ruteo por intención y seguridad por capas |
 | [Modelo entidad-relación](docs/arquitectura/modelo-er.md) | Tablas, vistas y relaciones |
+| [Manual de usuario](docs/manual-usuario.md) | Cómo usar la app y el chat, con ejemplos y solución de problemas |
 | [Manual de instalación](docs/manual-instalacion.md) | Local y AWS EC2, paso a paso |
 | [Pruebas](docs/pruebas.md) | Suites, casos y resultados |
 | [Decisiones](docs/decisiones.md) | Qué se decidió y por qué |
+| [Fundamento pedagógico](docs/fundamento-pedagogico.md) | Educación de precisión, autoaprendizaje, investigación, prompts y referencias |
+| [RAG](rag/README.md) | Ingesta, parámetros, búsqueda y evaluación |
 | [Guion del video](docs/guion-video.md) | Escenas y preguntas de la demostración |
 
 ## Autor

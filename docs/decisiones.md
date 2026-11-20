@@ -97,6 +97,13 @@ Cada entrada indica la fecha, qué se decidió y por qué.
 - **Migración de n8n:** el volumen de n8n se copió del equipo local a la instancia con el mismo `N8N_ENCRYPTION_KEY`, así que las credenciales y los workflows publicados pasaron sin volver a crearlos.
 - **iPhone:** la app nativa para iOS necesita un Mac con Xcode y una cuenta de Apple. Para usarla en un iPhone se publica la versión web de la misma app (Flutter web), que se puede agregar a la pantalla de inicio.
 
+## 2026-11-19 — Flutter aprobado por el profesor
+- **Decisión:** la app se mantiene en Flutter y Dart.
+- **Motivo:** el profesor aprobó el cambio frente a Kotlin y Jetpack Compose. El APK se instala en Android y la misma app se publica en la web para iPhone.
+
+## 2026-11-20 — Plan de estudios en el RAG
+- **Decisión:** se agrega al corpus `plan-estudios-ingenieria-sistemas-DEMO.md`, generado a partir de `database/seeds/001_catalogo.sql`, y tres preguntas sobre el plan a la evaluación.
+- **Motivo:** el RAG debía cubrir reglamento, plan de estudios y requisitos. Generarlo desde los mismos datos de la base evita que el RAG y el servidor MCP se contradigan.
+
 ## Pendientes
-- Confirmar con el profesor el uso de Flutter en lugar de Kotlin y Jetpack Compose.
 - Reemplazar los prerrequisitos DEMO por los oficiales si se consiguen.

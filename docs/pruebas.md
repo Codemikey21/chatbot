@@ -4,18 +4,18 @@ El sistema se prueba en cuatro niveles: pruebas unitarias de cada servicio, prue
 
 ## Resumen de resultados
 
-Resultados registrados en el entorno local (Docker en el equipo de desarrollo, Supabase en la nube y Claude real) y en AWS EC2. Las filas marcadas *por registrar* se vuelven a correr antes de la entrega para dejar la evidencia.
+Resultados registrados en el entorno local (Docker en el equipo de desarrollo, Supabase en la nube y Claude real) y en AWS EC2.
 
 | Suite | Qué cubre | Pruebas | Resultado | Fecha |
 |---|---|---:|---|---|
-| Servidor MCP (`pytest`) | Herramientas, verificación del token y servidor HTTP | 25 | Por registrar | — |
+| Servidor MCP (`pytest`) | Herramientas, verificación del token y servidor HTTP | 25 | 25 aprobadas | 2026-11-20 |
 | API FastAPI (`pytest`) | Login, sesiones, límites de uso, datos del estudiante, chat con n8n simulado y CORS | 36 | 36 aprobadas | 2026-11-14 |
-| Scraper (`pytest`) | Limpieza, extractores RSS y HTML, `robots.txt` y API | 25 | Por registrar | — |
+| Scraper (`pytest`) | Limpieza, extractores RSS y HTML, `robots.txt` y API | 25 | 25 aprobadas | 2026-11-20 |
 | App Flutter (`flutter test`) | Fechas en español, modelos de la API y componentes (anillo de progreso, estado de error) | 9 | 9 aprobadas | 2026-11-14 |
 | Chat de punta a punta (`probar_chat.py`) | WF01 con RAG, calendario, MCP, noticias, guardrails, memoria, seguimiento y tokens | 23 | 23/23 | 2026-11-14 |
 | API de punta a punta (`probar_api.py`) | Login, pantallas de datos, chat real y memoria | 12 | 12/12 | 2026-11-14 |
 | API en AWS EC2 (`probar_api.py` con `API_URL` del dominio) | Lo mismo, por HTTPS desde internet contra la instancia | 12 | 12/12 | 2026-11-14 |
-| Evaluación del RAG (`evaluar.py`) | Recuperación de documentos y rechazo fuera de alcance | 22 preguntas | acierto@5 100 %, MRR 0,97, rechazo 100 % | 2026-11-14 |
+| Evaluación del RAG (`evaluar.py`) | Recuperación de documentos y rechazo fuera de alcance | 25 preguntas | acierto@5 100 %, MRR 0,95, rechazo 100 % | 2026-11-20 |
 
 ## 1. Pruebas unitarias
 
@@ -87,7 +87,7 @@ Login incorrecto (401), login correcto, resumen, historial, recomendaciones, cur
 
 ## 3. Evaluación del RAG
 
-`rag/evaluacion/preguntas.csv` tiene 22 preguntas: 19 con el documento que debería responder cada una y 3 fuera de alcance que no deben recuperar nada.
+`rag/evaluacion/preguntas.csv` tiene 25 preguntas: 22 con el documento que debería responder cada una y 3 fuera de alcance que no deben recuperar nada.
 
 ```powershell
 mcp-server\.venv\Scripts\python.exe rag\evaluacion\evaluar.py
@@ -98,10 +98,11 @@ mcp-server\.venv\Scripts\python.exe rag\evaluacion\evaluar.py
 | Cursos de competencias digitales (DEMO) | 12 | 12 |
 | Reglamento estudiantil | 5 | 5 |
 | Lineamientos curriculares | 2 | 2 |
+| Plan de estudios (DEMO) | 3 | 3 |
 | Fuera de alcance (deben devolver vacío) | 3 | 3 |
 
 - **acierto@5:** 100 % (el documento correcto aparece entre los 5 primeros fragmentos).
-- **MRR:** 0,97 (en casi todos los casos el documento correcto es el primero).
+- **MRR:** 0,95. En 20 de las 22 preguntas el documento esperado es el primero. En las otras dos queda segundo detrás de un documento que también tiene la respuesta: la nota de aprobación aparece en el plan de estudios y en el reglamento de la insignia, y el crédito académico en el reglamento y en los lineamientos.
 - **Rechazo fuera de alcance:** 100 % con el umbral de similitud 0,35. Cuando nada supera el umbral, el chatbot responde que no encontró la información en lugar de inventarla.
 
 El detalle de cada pregunta queda en `rag/evaluacion/resultados.csv`.
@@ -137,9 +138,20 @@ Recorrido manual con el usuario de prueba `U00900100` en la versión publicada e
 | 8 | Calendario | Eventos con su estado | `app-08-calendario.jpg` |
 | 9 | Noticias | Noticias con fecha, categoría y enlace a la fuente | `app-09-noticias.jpg` |
 | 10 | Más | Perfil, accesos, acerca del proyecto y cerrar sesión | `app-10-mas.jpg` |
-| 11 | Sin conexión | Mensaje claro y botón para reintentar con la API apagada | Pendiente |
+| 11 | Sin conexión | Mensaje claro y botón *Reintentar* con la API apagada (`EstadoError` en `widgets/comunes.dart`) | Sin captura |
 
-## Pendiente
+El APK para Android se generó con `flutter build apk --release` apuntando a la API de AWS (`https://chatbot-unab-demo.duckdns.org/api/v1`).
 
-- Registrar los resultados del servidor MCP y del scraper.
-- Hacer el recorrido de la app con el APK y con la versión web publicada en AWS.
+## 6. Evidencias de los servicios
+
+Capturas tomadas el 20 de noviembre de 2026 en el entorno local, contra la base de Supabase. Están en `docs/evidencias/`.
+
+| Componente | Qué muestra | Evidencia |
+|---|---|---|
+| Base de datos | Tabla `inscripcion` con 412 registros en el editor de Supabase | `ev-supabase-tablas.jpg` |
+| Base de datos | Historial con notas del estudiante DEMO `U00900100` (vista `v_historial_academico`) | `ev-supabase-historial.jpg` |
+| Base de datos | Semestres restantes estimados de los 12 estudiantes DEMO (vista `v_proyeccion_semestres`) | `ev-supabase-proyeccion.jpg` |
+| n8n | Workflow WF01 completo, publicado | `ev-n8n-flujo.jpg` |
+| n8n | Ejecución exitosa de WF01 con el agente usando `consultar_calendario` | `ev-n8n-ejecucion.jpg` |
+| Servidor MCP | WF03 llama al servidor MCP y recibe el historial del estudiante desde PostgreSQL | `ev-mcp-respuesta.jpg` |
+| Webhook | `POST /api/v1/chat` desde Swagger: «¿Qué materias puedo matricular el próximo semestre y cuántos semestres me faltan?» → 200, con `consultar_mis_datos` y `consultar_calendario` | `ev-api-chat.jpg` |
