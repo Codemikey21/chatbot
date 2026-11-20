@@ -26,7 +26,7 @@ Proyecto final de Ciencia de Datos · Ingeniería de Sistemas · Universidad Aut
 
 </div>
 
-> **Datos demostrativos.** El proyecto no tiene acceso a Banner-Cosmos ni a bases de datos institucionales. Los estudiantes, notas, NRC, prerrequisitos, el calendario y los documentos marcados como DEMO son ficticios y no representan información oficial de la UNAB.
+> **Datos demostrativos.** El proyecto no tiene acceso a Banner-Cosmos ni a bases de datos institucionales. Los estudiantes, notas, NRC, prerrequisitos, el calendario y algunos documentos del RAG (plan de estudios, guía de proyecto de grado y documentos de los CCD) son sintéticos y no representan información oficial de la UNAB. Para que la app se vea como un producto real, estos datos no llevan la etiqueta DEMO en pantalla; la aclaración está en *Más → Acerca del proyecto*.
 
 ## Qué le puedes preguntar
 
@@ -39,6 +39,7 @@ Proyecto final de Ciencia de Datos · Ingeniería de Sistemas · Universidad Aut
 | Matrícula del próximo semestre | ¿Qué materias puedo matricular el próximo semestre? (de sexto: las de séptimo, suponiendo que apruebas lo que cursas) | Servidor MCP |
 | Proyección | ¿Cuántos semestres me faltan para graduarme? | Servidor MCP + calendario |
 | Proyecto de grado y prácticas | ¿Qué es el proyecto de grado y qué profesor me recomiendas si me gustan los videojuegos? | Guía de proyecto de grado (RAG) + mi historial |
+| Director de proyecto | Me gusta la IA, ¿qué profe me puede dirigir el proyecto? | Guía de proyecto de grado (RAG): directores por línea |
 | Recomendaciones | ¿Cuál me recomiendas del pilar de tecnologías y por qué? | Servidor MCP (afinidad con el pensum) |
 | Costos y requisitos | ¿Puedo hacer la práctica si debo alguna materia? | Documentos + datos del estudiante |
 | Plan de estudios | ¿Cuál es el prerrequisito de Desarrollo de Aplicaciones Móviles? | Plan de estudios (RAG) |
@@ -84,7 +85,7 @@ Usuario de prueba: `U00900100` · contraseña `Demo2026*` (estudiante DEMO). En 
   </tr>
 </table>
 
-El diseño parte de los mockups de [`docs/mockups/`](docs/mockups/) y usa el logo, los colores y la tipografía (Poppins) del manual de marca de la universidad.
+El diseño parte de los mockups de [`docs/mockups/`](docs/mockups/) y usa el logo, los colores y la tipografía (Poppins) del manual de marca de la universidad. Al abrir la app, una animación arma el logo de la UNAB (el símbolo gira y las letras u-n-a-b aparecen una a una), y el mismo símbolo identifica al asistente en el encabezado del chat.
 </details>
 
 ## Arquitectura
@@ -161,7 +162,7 @@ sequenceDiagram
 | Herramientas MCP | FastMCP | [`mcp-server/`](mcp-server/) | 7 herramientas de solo lectura, HTTP streamable en el puerto 9000 |
 | RAG | Voyage AI + pgvector | [`rag/`](rag/) | Ingesta, búsqueda híbrida y evaluación |
 | Noticias | Python | [`scraper/`](scraper/) | RSS y HTML respetando `robots.txt` |
-| Base de datos | Supabase PostgreSQL | [`database/`](database/) | 11 migraciones, vistas, RLS y datos DEMO |
+| Base de datos | Supabase PostgreSQL | [`database/`](database/) | 12 migraciones, vistas, RLS y datos DEMO |
 | Infraestructura | Docker, Caddy, AWS EC2 | [`infrastructure/`](infrastructure/) | HTTPS automático y despliegue reproducible |
 </details>
 
@@ -201,7 +202,7 @@ flowchart LR
 | Reglamento | Reglamento estudiantil de pregrado (público, UNAB) |
 | Plan de estudios | Plan de estudios de Ingeniería de Sistemas por semestre, con prerrequisitos (DEMO) y lineamientos curriculares (público, UNAB) |
 | Requisitos | Reglamento de la insignia, catálogo de cursos, prueba diagnóstica y preguntas frecuentes de los CCD (DEMO) |
-| Proyecto de grado y prácticas | Guía con modalidades, pasos, directores por línea (software, datos e IA, videojuegos) y empresas; los docentes y empresas reales vienen de documentos públicos de la UNAB y el resto es DEMO |
+| Proyecto de grado y prácticas | Guía con modalidades, pasos, directores por línea (software, ciencia de datos e IA, videojuegos) y empresas. En ciencia de datos e IA dirigen Alfredo Díaz y Andrés Felipe Jerez, docentes del programa; los demás docentes y las empresas con vínculo documentado vienen de documentos públicos de la UNAB, y los otros ejemplos de empresas son DEMO |
 
 Fragmentos de ~1.200 caracteres con 200 de solape, cortados por párrafo o artículo para que cada uno trate una sola idea; embeddings de Voyage `voyage-4` (1024 dimensiones, distingue documento y consulta); umbral de similitud 0,35 elegido con la evaluación. La justificación de cada parámetro está en [`rag/README.md`](rag/README.md#parámetros-y-por-qué).
 
@@ -233,6 +234,7 @@ Supabase PostgreSQL con pgvector. El modelo cubre estudiantes, programa, plan de
 | [`006_roles_seguridad_y_rls.sql`](database/migrations/006_roles_seguridad_y_rls.sql) | Un rol por servicio y políticas RLS por estudiante |
 | [`007`](database/migrations/007_funciones_rag.sql) a [`010`](database/migrations/010_requisito_practica.sql) | Funciones del RAG, del chat y de noticias; requisito de la práctica |
 | [`011_matricula_proximo_semestre.sql`](database/migrations/011_matricula_proximo_semestre.sql) | Materias que podrá matricular el próximo semestre si aprueba lo que cursa ahora |
+| [`012_textos_sin_etiqueta_demo.sql`](database/migrations/012_textos_sin_etiqueta_demo.sql) | Quita la etiqueta DEMO de las descripciones, docentes y fuentes que ve el estudiante; se ejecuta después de los seeds |
 | [`seeds/`](database/seeds/) | Catálogo, 12 estudiantes DEMO con historial, calendario y fuentes de noticias |
 
 <table>
